@@ -1,6 +1,7 @@
 pub mod coefficients;
 pub mod model_store;
 pub mod mlp;
+pub mod reference_data;
 pub mod uncertainty;
 
 pub use coefficients::{
@@ -8,3 +9,4 @@ pub use coefficients::{
     ParetoProgressEvent, RetrofitMeasure, RetrofitOption, BUILDING_TYPES, CLIMATES, ERAS,
 };
 pub use model_store::EmbeddedModelStore;
+pub use reference_data::ReferenceData;

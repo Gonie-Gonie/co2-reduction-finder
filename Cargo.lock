@@ -243,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "co2-reduction-finder"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "eframe",
  "rayon",

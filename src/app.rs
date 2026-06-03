@@ -8,7 +8,8 @@ use eframe::egui::{self, Color32, RichText, Stroke};
 
 use crate::domain::{
     estimate_reduction, run_preview_pareto_job, EmbeddedModelStore, EstimateRequest, EstimateResult,
-    ParetoProgressEvent, RetrofitMeasure, RetrofitOption, BUILDING_TYPES, CLIMATES, ERAS,
+    ParetoProgressEvent, ReferenceData, RetrofitMeasure, RetrofitOption, BUILDING_TYPES, CLIMATES,
+    ERAS,
 };
 
 pub struct Co2App {
@@ -22,6 +23,8 @@ pub struct Co2App {
     error: Option<String>,
     model_store: Option<EmbeddedModelStore>,
     model_error: Option<String>,
+    reference_data: Option<ReferenceData>,
+    reference_error: Option<String>,
     progress: f32,
     progress_message: String,
     progress_rx: Option<Receiver<ParetoProgressEvent>>,
@@ -33,6 +36,10 @@ impl Co2App {
         apply_theme(&cc.egui_ctx);
         let (model_store, model_error) = match EmbeddedModelStore::load() {
             Ok(store) => (Some(store), None),
+            Err(error) => (None, Some(error)),
+        };
+        let (reference_data, reference_error) = match ReferenceData::load() {
+            Ok(data) => (Some(data), None),
             Err(error) => (None, Some(error)),
         };
 
@@ -66,6 +73,8 @@ impl Co2App {
             error: None,
             model_store,
             model_error,
+            reference_data,
+            reference_error,
             progress: 0.0,
             progress_message: "대기".to_string(),
             progress_rx: None,
@@ -340,9 +349,36 @@ impl Co2App {
             let model_2 = format!("{}_2", selected_type.code);
             let status = match (store.get(&model_1), store.get(&model_2)) {
                 (Some(first), Some(second)) => {
+                    let weight_prefix = self
+                        .reference_data
+                        .as_ref()
+                        .and_then(|data| Some((data.get(&model_1)?.weight, data.get(&model_2)?.weight)))
+                        .map(|(w1, w2)| format!("weights {:.3}/{:.3}; ", w1, w2))
+                        .unwrap_or_default();
+                    let metadata_prefix = self
+                        .reference_data
+                        .as_ref()
+                        .and_then(|data| data.get(&model_1))
+                        .map(|metadata| {
+                            format!(
+                                "{} / {} / {} / {:.1}m2; ",
+                                metadata.korean_name,
+                                if metadata.residential { "주거" } else { "비주거" },
+                                if metadata.gas_heating { "gas heat" } else { "non-gas heat" },
+                                metadata.area
+                            )
+                        })
+                        .unwrap_or_default();
                     format!(
-                        "{}: {}d -> {}d, {}: {}d -> {}d",
-                        model_1, first.input_dim, first.output_dim, model_2, second.input_dim, second.output_dim
+                        "{}{}{}: {}d -> {}d, {}: {}d -> {}d",
+                        metadata_prefix,
+                        weight_prefix,
+                        model_1,
+                        first.input_dim,
+                        first.output_dim,
+                        model_2,
+                        second.input_dim,
+                        second.output_dim
                     )
                 }
                 _ => format!("{} / {} not fully mapped", model_1, model_2),
@@ -351,6 +387,18 @@ impl Co2App {
             ui.add_space(8.0);
         } else if let Some(error) = &self.model_error {
             ui.colored_label(Color32::from_rgb(160, 54, 45), format!("model load failed: {error}"));
+            ui.add_space(8.0);
+        }
+
+        if let Some(data) = &self.reference_data {
+            ui.small(format!(
+                "metadata: {} info rows / {} Umap rows",
+                data.info_len(),
+                data.umap_rows()
+            ));
+            ui.add_space(8.0);
+        } else if let Some(error) = &self.reference_error {
+            ui.colored_label(Color32::from_rgb(160, 54, 45), format!("metadata load failed: {error}"));
             ui.add_space(8.0);
         }
     }

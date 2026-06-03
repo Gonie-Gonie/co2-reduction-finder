@@ -14,6 +14,7 @@
 - Write an extraction script that reads each Keras Dense layer weight and bias. Done in `scripts/extract_models.py`.
 - Strip training-only metadata. Done: optimizer weights are excluded.
 - Emit compact model artifacts for Rust inference. Done: `assets/models.c2m`.
+- Include compact reference metadata. Done: `assets/info.csv` and `assets/Umap.csv`.
 - Add parity tests against Keras predictions for fixed inputs.
 - Resolve current H5/reference-code shape mismatch: H5 is 24-input/1-output, Python path says 25-input/2-output.
 

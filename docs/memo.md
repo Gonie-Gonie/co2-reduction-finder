@@ -51,8 +51,11 @@ Last updated: 2026-06-03
 - `src/domain/uncertainty.rs`: empirical distribution summary and smoothed histogram data.
 - `assets/models.c2m`: compact Dense MLP weights extracted from `.reference/pyCO2module/models/*.h5`.
 - `assets/models_manifest.json`: generated model asset metadata.
+- `assets/info.csv`: UTF-8 normalized building/model metadata from reference `info.csv`.
+- `assets/Umap.csv`: UTF-8 normalized thermal-property map from reference `Umap.csv`.
 - `scripts/setup.ps1`: repo-local Rust toolchain setup.
 - `scripts/extract_models.py`: developer-side H5 to compact model asset extraction.
+- `scripts/extract_reference_assets.py`: developer-side reference CSV normalization.
 - `.github/workflows/ci.yml`: main push/PR checks.
 - `.github/workflows/release.yml`: automatic GitHub Release for Windows exe.
 
@@ -62,6 +65,7 @@ Last updated: 2026-06-03
 - Extracted inference-only f32 weights are about 31.5MB.
 - The current extracted models are all 24-input, 1-output Dense MLPs.
 - This differs from the reference Python training path that says 25 inputs and 2 outputs. Treat this as a version mismatch to resolve before trusting final energy calculations.
+- Full converted ECM lookup tables are not included because they are about 57MB each. They should be generated in Rust from compact rules/data.
 
 ## Official References Checked
 
