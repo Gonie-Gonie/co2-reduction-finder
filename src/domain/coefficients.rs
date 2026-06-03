@@ -225,6 +225,7 @@ struct EnergyDistribution {
 pub struct OptionEstimate {
     pub id: u64,
     pub label: String,
+    pub spec: RetrofitSpec,
     pub after: EnergyStats,
     pub reduction: EnergyStats,
     pub cost: u64,
@@ -896,6 +897,7 @@ fn estimate_option(
     OptionEstimate {
         id: option.id,
         label: option.label.clone(),
+        spec: option.spec,
         after,
         reduction,
         cost: retrofit_cost(option.spec, area_m2),

@@ -17,8 +17,8 @@ The release executable is generated at `target/release/co2-reduction-finder.exe`
 Push a version tag:
 
 ```powershell
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.1.7
+git push origin v0.1.7
 ```
 
 The workflow performs:
@@ -32,7 +32,7 @@ The workflow performs:
 
 ## Manual Release
 
-The `release` workflow can also be run manually from GitHub Actions. Enter `0.1.6` as the `version` input to create or update release tag `v0.1.6`.
+The `release` workflow can also be run manually from GitHub Actions. Enter `0.1.7` as the `version` input to create or update release tag `v0.1.7`.
 
 ## Release Notes
 

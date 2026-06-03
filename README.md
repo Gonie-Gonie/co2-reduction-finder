@@ -45,8 +45,8 @@ The release executable is generated at `target/release/co2-reduction-finder.exe`
 GitHub Release is created automatically from a tag push:
 
 ```powershell
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.1.7
+git push origin v0.1.7
 ```
 
 Details are tracked in [docs/release.md](docs/release.md).

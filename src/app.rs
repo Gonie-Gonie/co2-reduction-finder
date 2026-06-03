@@ -709,6 +709,8 @@ impl Co2App {
                 self.area_m2,
                 true,
             );
+            ui.add_space(8.0);
+            pareto_technology_table(ui, result);
         } else {
             let message = if self.is_running {
                 "Pareto 계산 중입니다."
@@ -1107,6 +1109,25 @@ fn numeric_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     );
 }
 
+fn efficiency_cell(ui: &mut egui::Ui, efficiency: f64, max_efficiency: f64, width: f32) {
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
+    let bar_rect = rect.shrink2(Vec2::new(2.0, 4.0));
+    ui.painter()
+        .rect_filled(bar_rect, 2.0, Color32::from_rgb(232, 238, 238));
+    if max_efficiency > 0.0 && efficiency.is_finite() {
+        let fill_width = bar_rect.width() * (efficiency / max_efficiency).clamp(0.0, 1.0) as f32;
+        let fill_rect = Rect::from_min_size(bar_rect.min, Vec2::new(fill_width, bar_rect.height()));
+        ui.painter().rect_filled(fill_rect, 2.0, ACCENT);
+    }
+    ui.painter().text(
+        Pos2::new(rect.right() - 4.0, rect.center().y),
+        Align2::RIGHT_CENTER,
+        format_number(efficiency),
+        egui::FontId::proportional(12.0),
+        TEXT_COLOR,
+    );
+}
+
 fn parse_area_input(input: &str) -> Option<f64> {
     let value = input.trim().replace(',', "").parse::<f64>().ok()?;
     if value.is_finite() && value > 0.0 {
@@ -1148,7 +1169,7 @@ fn density_chart(
             chart_available_width(ui),
             240.0 + (legend_rows - 1.0) * 18.0,
         );
-        let (rect, _) = ui.allocate_exact_size(desired, Sense::hover());
+        let (rect, response) = ui.allocate_exact_size(desired, Sense::hover());
         let painter = ui.painter_at(rect);
         chart_background(&painter, rect);
 
@@ -1229,6 +1250,36 @@ fn density_chart(
                 egui::FontId::proportional(12.0),
                 TEXT_COLOR,
             );
+        }
+
+        if response.hovered() {
+            if let Some(pointer) = ui.ctx().pointer_hover_pos() {
+                if plot.contains(pointer) {
+                    let x_display = x_axis.min
+                        + (x_axis.max - x_axis.min)
+                            * ((pointer.x - plot.left()) / plot.width()).clamp(0.0, 1.0) as f64;
+                    let x_raw = x_display * scale.divisor;
+                    let mut lines = vec![format!(
+                        "배출/사용량: {} {}",
+                        format_number(x_raw),
+                        metric.factor().unit
+                    )];
+                    for (label, stats) in series {
+                        let mean =
+                            metric_display_value(metric, stats.mean, area_m2) / scale.divisor;
+                        let std = (metric_display_value(metric, stats.std, area_m2)
+                            / scale.divisor)
+                            .abs()
+                            .max(0.001);
+                        lines.push(format!(
+                            "{} 밀도 {}",
+                            short_label(label, 18),
+                            format_number(normal_pdf(x_display, mean, std))
+                        ));
+                    }
+                    response.on_hover_text(lines.join("\n"));
+                }
+            }
         }
     });
 }
@@ -1497,7 +1548,7 @@ fn scatter_chart(
 ) {
     ui.push_id(id, |ui| {
         let desired = Vec2::new(chart_available_width(ui), 260.0);
-        let (rect, _) = ui.allocate_exact_size(desired, Sense::hover());
+        let (rect, response) = ui.allocate_exact_size(desired, Sense::hover());
         let painter = ui.painter_at(rect);
         chart_background(&painter, rect);
         let plot = plot_rect(rect, 68.0, 32.0, 36.0, 54.0);
@@ -1558,6 +1609,7 @@ fn scatter_chart(
         }
 
         let mut used_label_rects = Vec::new();
+        let mut label_rects = Vec::new();
         for (index, item, point) in &points {
             let label = pareto_point_label(&item.label, *index);
             if let Some(label_rect) =
@@ -1578,6 +1630,21 @@ fn scatter_chart(
                     TEXT_COLOR,
                 );
                 used_label_rects.push(label_rect);
+                label_rects.push((*index, label_rect));
+            }
+        }
+
+        if response.hovered() {
+            if let Some(pointer) = ui.ctx().pointer_hover_pos() {
+                let hovered = points.iter().find(|(index, _, point)| {
+                    point.distance(pointer) <= 8.0
+                        || label_rects.iter().any(|(label_index, rect)| {
+                            *label_index == *index && rect.contains(pointer)
+                        })
+                });
+                if let Some((index, item, _)) = hovered {
+                    response.on_hover_text(pareto_hover_text(*index, item, metric, area_m2));
+                }
             }
         }
     });
@@ -1590,6 +1657,79 @@ fn pareto_point_label(label: &str, fallback_index: usize) -> String {
         .and_then(|prefix| prefix.strip_prefix("Pareto "))
         .map(|number| format!("P{}", number.trim()))
         .unwrap_or_else(|| format!("P{}", fallback_index + 1))
+}
+
+fn pareto_hover_text(
+    index: usize,
+    item: &OptionEstimate,
+    metric: EnergyMetric,
+    area_m2: f64,
+) -> String {
+    let factor = metric.factor();
+    let after = metric_display_value(metric, item.after.mean, area_m2);
+    let reduction = metric_display_value(metric, item.reduction.mean, area_m2);
+    let before = after + reduction;
+    let std = metric_display_value(metric, item.reduction.std, area_m2).abs();
+
+    format!(
+        "{}\n전: {} {}\n후: {} {}\n감축: {} {} ({})\n표준편차: {} {}\n공사비: {}\n요소기술: {}",
+        pareto_point_label(&item.label, index),
+        format_number(before),
+        factor.unit,
+        format_number(after),
+        factor.unit,
+        format_number(reduction),
+        factor.unit,
+        format_percent(reduction_rate(before, reduction)),
+        format_number(std),
+        factor.unit,
+        format_cost(item.cost),
+        retrofit_technology_summary(item.spec),
+    )
+}
+
+fn retrofit_technology_summary(spec: RetrofitSpec) -> String {
+    let mut parts = Vec::new();
+    if spec.wall > 0 {
+        parts.push(format!("벽체 {}", envelope_level_label(spec.wall)));
+    }
+    if spec.roof > 0 {
+        parts.push(format!("지붕 {}", envelope_level_label(spec.roof)));
+    }
+    if spec.floor > 0 {
+        parts.push(format!("바닥 {}", envelope_level_label(spec.floor)));
+    }
+    if spec.window > 0 {
+        parts.push(format!("창호 {}", window_level_label(spec.window)));
+    }
+    for measure in BinaryRetrofitMeasure::ALL {
+        if spec.is_enabled(measure) {
+            parts.push(measure.label().to_string());
+        }
+    }
+
+    if parts.is_empty() {
+        "-".to_string()
+    } else {
+        parts.join(", ")
+    }
+}
+
+fn envelope_level_label(level: u8) -> &'static str {
+    match level {
+        1 => "현행",
+        2 => "강화",
+        _ => "-",
+    }
+}
+
+fn window_level_label(level: u8) -> &'static str {
+    match level {
+        1 => "1",
+        2 => "2",
+        3 => "3",
+        _ => "-",
+    }
 }
 
 fn scatter_label_rect(
@@ -1676,40 +1816,82 @@ fn result_table(
                     numeric_header(ui, &format!("표준편차 [{}]", factor.unit), 104.0);
                     numeric_header(ui, "공사비", 112.0);
                     if include_incremental {
-                        numeric_header(ui, &format!("추가효용 [{}]", factor.unit), 116.0);
-                        numeric_header(ui, "추가비용", 112.0);
+                        numeric_header(ui, &format!("효율 [{}/억원]", factor.unit), 220.0);
                     }
                     ui.end_row();
 
                     let before = metric_display_value(metric, result.baseline.mean, area_m2);
-                    let mut previous_reduction = None;
-                    let mut previous_cost = None;
-                    for item in &result.options {
-                        let reduction = metric_display_value(metric, item.reduction.mean, area_m2);
-                        let incremental = if include_incremental {
-                            previous_reduction.zip(previous_cost).map(
-                                |(prev_reduction, prev_cost)| {
-                                    (
-                                        reduction - prev_reduction,
-                                        item.cost as i64 - prev_cost as i64,
-                                    )
-                                },
-                            )
+                    let efficiencies = if include_incremental {
+                        pareto_efficiencies(result, metric, area_m2)
+                    } else {
+                        Vec::new()
+                    };
+                    let max_efficiency = efficiencies
+                        .iter()
+                        .flatten()
+                        .copied()
+                        .fold(0.0_f64, f64::max);
+                    for (index, item) in result.options.iter().enumerate() {
+                        let efficiency = if include_incremental {
+                            efficiencies.get(index).and_then(|value| *value)
                         } else {
                             None
+                        };
+                        let row_label = if include_incremental {
+                            pareto_point_label(&item.label, index)
+                        } else {
+                            short_label(&item.label, 24)
                         };
                         option_row(
                             ui,
                             item,
+                            &row_label,
                             before,
                             metric,
                             area_m2,
                             true,
                             include_incremental,
-                            incremental,
+                            efficiency,
+                            max_efficiency,
                         );
-                        previous_reduction = Some(reduction);
-                        previous_cost = Some(item.cost);
+                    }
+                });
+        });
+}
+
+fn pareto_technology_table(ui: &mut egui::Ui, result: &EstimateResult) {
+    subsection_label(ui, "Pareto 기술 상세");
+    egui::ScrollArea::horizontal()
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            egui::Grid::new("pareto-technology-table")
+                .striped(true)
+                .min_col_width(64.0)
+                .show(ui, |ui| {
+                    ui.strong("구분");
+                    ui.strong("벽체");
+                    ui.strong("지붕");
+                    ui.strong("바닥");
+                    ui.strong("창호");
+                    for measure in BinaryRetrofitMeasure::ALL {
+                        ui.strong(measure.label());
+                    }
+                    ui.end_row();
+
+                    for (index, item) in result.options.iter().enumerate() {
+                        ui.label(pareto_point_label(&item.label, index));
+                        ui.label(envelope_level_label(item.spec.wall));
+                        ui.label(envelope_level_label(item.spec.roof));
+                        ui.label(envelope_level_label(item.spec.floor));
+                        ui.label(window_level_label(item.spec.window));
+                        for measure in BinaryRetrofitMeasure::ALL {
+                            ui.label(if item.spec.is_enabled(measure) {
+                                "✓"
+                            } else {
+                                "-"
+                            });
+                        }
+                        ui.end_row();
                     }
                 });
         });
@@ -1718,12 +1900,14 @@ fn result_table(
 fn option_row(
     ui: &mut egui::Ui,
     item: &OptionEstimate,
+    row_label: &str,
     before: f64,
     metric: EnergyMetric,
     area_m2: f64,
     full: bool,
-    show_incremental: bool,
-    incremental: Option<(f64, i64)>,
+    show_efficiency: bool,
+    efficiency: Option<f64>,
+    max_efficiency: f64,
 ) {
     let after = metric_display_value(metric, item.after.mean, area_m2);
     let reduction = metric_display_value(metric, item.reduction.mean, area_m2);
@@ -1731,7 +1915,7 @@ fn option_row(
     let rate = reduction_rate(before, reduction);
 
     ui.push_id(item.id, |ui| {
-        ui.label(short_label(&item.label, 24));
+        ui.label(row_label);
     });
     if full {
         numeric_cell(ui, format_number(before), 92.0);
@@ -1740,13 +1924,11 @@ fn option_row(
         numeric_cell(ui, format_percent(rate), 76.0);
         numeric_cell(ui, format_number(std), 104.0);
         numeric_cell(ui, format_cost(item.cost), 112.0);
-        if show_incremental {
-            if let Some((additional_utility, additional_cost)) = incremental {
-                numeric_cell(ui, format_number(additional_utility), 116.0);
-                numeric_cell(ui, format_cost_delta(additional_cost), 112.0);
+        if show_efficiency {
+            if let Some(efficiency) = efficiency {
+                efficiency_cell(ui, efficiency, max_efficiency, 220.0);
             } else {
-                numeric_cell(ui, "-", 116.0);
-                numeric_cell(ui, "-", 112.0);
+                numeric_cell(ui, "-", 220.0);
             }
         }
     } else {
@@ -1779,6 +1961,33 @@ fn summary_option_row(
     numeric_cell(ui, format_number(std), 104.0);
     numeric_cell(ui, format_cost(item.cost), 112.0);
     ui.end_row();
+}
+
+fn pareto_efficiencies(
+    result: &EstimateResult,
+    metric: EnergyMetric,
+    area_m2: f64,
+) -> Vec<Option<f64>> {
+    let mut previous_reduction = 0.0_f64;
+    let mut previous_cost = 0_u64;
+    result
+        .options
+        .iter()
+        .map(|item| {
+            let reduction = metric_display_value(metric, item.reduction.mean, area_m2);
+            let delta_reduction = reduction - previous_reduction;
+            let delta_cost_krw = item.cost.saturating_sub(previous_cost);
+            previous_reduction = reduction;
+            previous_cost = item.cost;
+
+            let delta_cost_eok = delta_cost_krw as f64 / 100_000_000.0;
+            if delta_cost_eok > 0.0 {
+                Some(delta_reduction / delta_cost_eok)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn metric_display_value(metric: EnergyMetric, values: EnergyValues, area_m2: f64) -> f64 {
@@ -2063,12 +2272,6 @@ fn format_cost(cost: u64) -> String {
     )
 }
 
-fn format_cost_delta(cost_delta: i64) -> String {
-    let sign = if cost_delta < 0 { "-" } else { "" };
-    let value = (cost_delta.unsigned_abs() as f64) / 10_000.0;
-    format!("{sign}{} 만원", format_number_with_commas(value, 0))
-}
-
 fn format_number_with_commas(value: f64, decimals: usize) -> String {
     let formatted = format!("{value:.decimals$}");
     let (integer, fractional) = formatted
@@ -2153,7 +2356,11 @@ fn level_toggle_group(
                         },
                     ));
                 if ui.add(button).clicked() {
-                    *selected = *value;
+                    if is_selected {
+                        *selected = 0;
+                    } else {
+                        *selected = *value;
+                    }
                 }
             }
         });
@@ -2217,8 +2424,8 @@ fn labeled_combo<'a>(
     ui.add_space(8.0);
 }
 
-const ENVELOPE_LEVELS: [(u8, &str); 3] = [(0, "-"), (1, "현행"), (2, "강화")];
-const WINDOW_LEVELS: [(u8, &str); 4] = [(0, "-"), (1, "1"), (2, "2"), (3, "3")];
+const ENVELOPE_LEVELS: [(u8, &str); 2] = [(1, "현행"), (2, "강화")];
+const WINDOW_LEVELS: [(u8, &str); 3] = [(1, "1"), (2, "2"), (3, "3")];
 
 fn apply_theme(ctx: &egui::Context) {
     let mut fonts = FontDefinitions::default();
