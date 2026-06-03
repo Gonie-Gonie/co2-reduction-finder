@@ -75,6 +75,7 @@ Last updated: 2026-06-03
 ## Current Limitations
 
 - Pareto dominance currently uses point estimates from staged sample counts; uncertainty-band dominance still needs a richer sample-distribution result type.
+- Pareto runs automatically for the selected building context and is reset/restarted when the building type, climate, era, area, or selected metric changes.
 - The graph layout is now sectioned like Excel `MAIN`, but exact visual styling can still be refined after user feedback on built exe screenshots.
 - UI distribution curves currently use the computed mean/std result layer that matches Excel's dashboard plotting flow; a later refinement can expose empirical smoothed histograms from raw sample arrays.
 
@@ -93,6 +94,7 @@ Last updated: 2026-06-03
   - single-measure chart from `계산sheet!B69:J80`
   - reduction/cost scatter charts from `계산sheet!H86:J285`
 - GitHub Releases show a tag and title separately. This is official GitHub behavior, but the workflow now sets the release title to the tag only and release notes start with `## Changes` to avoid duplicate-looking names.
+- UI smoke captures must use DWM extended frame bounds (`scripts/smoke_capture.ps1`) instead of raw `GetWindowRect + CopyFromScreen`; Windows DPI scaling and invisible resize borders can otherwise offset the capture relative to the visible app window.
 
 ## Official References Checked
 

@@ -5,10 +5,13 @@ const UMAP_CSV: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets
 
 #[derive(Debug, Clone)]
 pub struct BuildingMetadata {
+    #[allow(dead_code)]
     pub korean_name: String,
     pub model_name: String,
     pub residential: bool,
+    #[allow(dead_code)]
     pub gas_heating: bool,
+    #[allow(dead_code)]
     pub area: f64,
     pub weight: f64,
 }
@@ -17,6 +20,7 @@ pub struct BuildingMetadata {
 pub struct ReferenceData {
     info: BTreeMap<String, BuildingMetadata>,
     umap: BTreeMap<UmapKey, UmapRow>,
+    #[allow(dead_code)]
     umap_rows: usize,
 }
 
@@ -119,10 +123,12 @@ impl ReferenceData {
         })
     }
 
+    #[allow(dead_code)]
     pub fn info_len(&self) -> usize {
         self.info.len()
     }
 
+    #[allow(dead_code)]
     pub fn umap_rows(&self) -> usize {
         self.umap_rows
     }

@@ -9,6 +9,7 @@ const MAGIC: &[u8; 4] = b"C2M1";
 #[derive(Debug, Clone)]
 pub struct EmbeddedModelStore {
     models: BTreeMap<String, MlpModel>,
+    #[allow(dead_code)]
     total_params: usize,
 }
 
@@ -79,10 +80,12 @@ impl EmbeddedModelStore {
         })
     }
 
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.models.len()
     }
 
+    #[allow(dead_code)]
     pub fn total_params(&self) -> usize {
         self.total_params
     }
