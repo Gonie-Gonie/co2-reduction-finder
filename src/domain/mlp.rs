@@ -58,6 +58,16 @@ impl MlpModel {
             .map(|input| self.predict(input))
             .collect::<Result<Vec<_>, _>>()
     }
+
+    pub fn parameter_count(&self) -> usize {
+        self.layers
+            .iter()
+            .map(|layer| {
+                let weight_count = layer.weights.iter().map(Vec::len).sum::<usize>();
+                weight_count + layer.bias.len()
+            })
+            .sum()
+    }
 }
 
 impl DenseLayer {
@@ -145,4 +155,3 @@ mod tests {
         assert_eq!(predicted, vec![vec![3.0], vec![5.0], vec![7.0]]);
     }
 }
-

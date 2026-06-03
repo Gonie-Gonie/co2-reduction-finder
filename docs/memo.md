@@ -47,13 +47,23 @@ Last updated: 2026-06-03
 - `src/app.rs`: egui dashboard skeleton with dynamic comparison options and progress display.
 - `src/domain/coefficients.rs`: stub estimate and staged Pareto progress job placeholder.
 - `src/domain/mlp.rs`: custom Dense MLP forward pass with parallel batch prediction.
+- `src/domain/model_store.rs`: embedded compact model asset loader.
 - `src/domain/uncertainty.rs`: empirical distribution summary and smoothed histogram data.
+- `assets/models.c2m`: compact Dense MLP weights extracted from `.reference/pyCO2module/models/*.h5`.
+- `assets/models_manifest.json`: generated model asset metadata.
 - `scripts/setup.ps1`: repo-local Rust toolchain setup.
+- `scripts/extract_models.py`: developer-side H5 to compact model asset extraction.
 - `.github/workflows/ci.yml`: main push/PR checks.
 - `.github/workflows/release.yml`: automatic GitHub Release for Windows exe.
+
+## Model Asset Notes
+
+- The 42 source H5 files are about 101MB total.
+- Extracted inference-only f32 weights are about 31.5MB.
+- The current extracted models are all 24-input, 1-output Dense MLPs.
+- This differs from the reference Python training path that says 25 inputs and 2 outputs. Treat this as a version mismatch to resolve before trusting final energy calculations.
 
 ## Official References Checked
 
 - Rust 1.96.0 release: https://blog.rust-lang.org/2026/05/28/Rust-1.96.0/
 - Tauri docs were checked earlier, but Tauri is currently excluded by design.
-

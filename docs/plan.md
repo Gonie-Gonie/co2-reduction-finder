@@ -10,11 +10,12 @@
 
 ## Milestone 1: Model Extraction
 
-- Inspect H5 layout without loading the 1GB Excel workbook.
-- Write an extraction script that reads each Keras Dense layer weight and bias.
-- Strip training-only metadata.
-- Emit compact model artifacts for Rust inference.
+- Inspect H5 layout without loading the 1GB Excel workbook. Done for current `.reference` models.
+- Write an extraction script that reads each Keras Dense layer weight and bias. Done in `scripts/extract_models.py`.
+- Strip training-only metadata. Done: optimizer weights are excluded.
+- Emit compact model artifacts for Rust inference. Done: `assets/models.c2m`.
 - Add parity tests against Keras predictions for fixed inputs.
+- Resolve current H5/reference-code shape mismatch: H5 is 24-input/1-output, Python path says 25-input/2-output.
 
 ## Milestone 2: Rust Calculation Engine
 
@@ -50,4 +51,3 @@
 - Confirm actual artifact size.
 - Test on a clean Windows PC.
 - Reconsider Tauri only if the native GUI path becomes insufficient.
-

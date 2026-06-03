@@ -7,7 +7,7 @@ use std::{
 use eframe::egui::{self, Color32, RichText, Stroke};
 
 use crate::domain::{
-    estimate_reduction, run_preview_pareto_job, EstimateRequest, EstimateResult,
+    estimate_reduction, run_preview_pareto_job, EmbeddedModelStore, EstimateRequest, EstimateResult,
     ParetoProgressEvent, RetrofitMeasure, RetrofitOption, BUILDING_TYPES, CLIMATES, ERAS,
 };
 
@@ -20,6 +20,8 @@ pub struct Co2App {
     next_option_id: u64,
     result: Option<EstimateResult>,
     error: Option<String>,
+    model_store: Option<EmbeddedModelStore>,
+    model_error: Option<String>,
     progress: f32,
     progress_message: String,
     progress_rx: Option<Receiver<ParetoProgressEvent>>,
@@ -29,6 +31,10 @@ pub struct Co2App {
 impl Co2App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         apply_theme(&cc.egui_ctx);
+        let (model_store, model_error) = match EmbeddedModelStore::load() {
+            Ok(store) => (Some(store), None),
+            Err(error) => (None, Some(error)),
+        };
 
         Self {
             selected_building: 3,
@@ -58,6 +64,8 @@ impl Co2App {
             next_option_id: 3,
             result: None,
             error: None,
+            model_store,
+            model_error,
             progress: 0.0,
             progress_message: "대기".to_string(),
             progress_rx: None,
@@ -176,6 +184,8 @@ impl Co2App {
         ui.add_space(8.0);
         ui.heading("기준 조건");
         ui.add_space(8.0);
+        self.model_status_ui(ui);
+        ui.separator();
 
         labeled_combo(ui, "본과제용도분류", "building-type", &mut self.selected_building, BUILDING_TYPES.iter().map(|item| item.label));
         let selected_type = BUILDING_TYPES[self.selected_building];
@@ -314,6 +324,35 @@ impl Co2App {
 
         ui.add_space(16.0);
         ui.add(egui::ProgressBar::new(self.progress).show_percentage());
+    }
+
+    fn model_status_ui(&self, ui: &mut egui::Ui) {
+        if let Some(store) = &self.model_store {
+            ui.label(RichText::new("모델 asset").strong().color(Color32::from_rgb(82, 97, 100)));
+            ui.label(format!(
+                "{} models / {:.2}M params",
+                store.len(),
+                store.total_params() as f64 / 1_000_000.0
+            ));
+
+            let selected_type = BUILDING_TYPES[self.selected_building];
+            let model_1 = format!("{}_1", selected_type.code);
+            let model_2 = format!("{}_2", selected_type.code);
+            let status = match (store.get(&model_1), store.get(&model_2)) {
+                (Some(first), Some(second)) => {
+                    format!(
+                        "{}: {}d -> {}d, {}: {}d -> {}d",
+                        model_1, first.input_dim, first.output_dim, model_2, second.input_dim, second.output_dim
+                    )
+                }
+                _ => format!("{} / {} not fully mapped", model_1, model_2),
+            };
+            ui.small(status);
+            ui.add_space(8.0);
+        } else if let Some(error) = &self.model_error {
+            ui.colored_label(Color32::from_rgb(160, 54, 45), format!("model load failed: {error}"));
+            ui.add_space(8.0);
+        }
     }
 
     fn kpi_ui(&self, ui: &mut egui::Ui) {
