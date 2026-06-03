@@ -132,7 +132,9 @@ mod tests {
             ],
         };
 
-        let predicted = model.predict(&[2.0, 1.0]).expect("prediction should succeed");
+        let predicted = model
+            .predict(&[2.0, 1.0])
+            .expect("prediction should succeed");
         assert!((predicted[0] - 5.25).abs() < 0.0001);
     }
 

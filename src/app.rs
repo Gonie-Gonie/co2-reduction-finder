@@ -1,15 +1,18 @@
 use std::{
     collections::BTreeSet,
-    sync::mpsc::{self, Receiver},
+    sync::{
+        Arc,
+        mpsc::{self, Receiver},
+    },
     time::Duration,
 };
 
-use eframe::egui::{self, Color32, RichText, Stroke};
+use eframe::egui::{self, Color32, FontData, FontDefinitions, FontFamily, RichText, Stroke};
 
 use crate::domain::{
-    estimate_reduction, run_preview_pareto_job, EmbeddedModelStore, EstimateRequest, EstimateResult,
-    ParetoProgressEvent, ReferenceData, RetrofitMeasure, RetrofitOption, BUILDING_TYPES, CLIMATES,
-    ERAS,
+    BUILDING_TYPES, CLIMATES, ERAS, EmbeddedModelStore, EstimateRequest, EstimateResult,
+    ParetoProgressEvent, ReferenceData, RetrofitMeasure, RetrofitOption, estimate_reduction,
+    run_preview_pareto_job,
 };
 
 pub struct Co2App {
@@ -45,12 +48,10 @@ impl Co2App {
         };
         let model_blend_check = match (&model_store, &reference_data) {
             (Some(store), Some(data)) => {
-                let result = data
-                    .model1_weight_for_base("Office")
-                    .and_then(|weight| {
-                        let inputs = vec![vec![0.0; 25]; 10];
-                        store.predict_pair_split("Office", weight, &inputs)
-                    });
+                let result = data.model1_weight_for_base("Office").and_then(|weight| {
+                    let inputs = vec![vec![0.0; 25]; 10];
+                    store.predict_pair_split("Office", weight, &inputs)
+                });
                 match result {
                     Ok(outputs) => Some(format!("Office split sanity: {} samples", outputs.len())),
                     Err(error) => Some(format!("Office split sanity failed: {error}")),
@@ -115,7 +116,21 @@ impl Co2App {
         self.progress = 0.0;
         self.progress_message = "계산 준비".to_string();
 
-        match estimate_reduction(&request) {
+        let estimate = match (&self.model_store, &self.reference_data) {
+            (Some(model_store), Some(reference_data)) => {
+                estimate_reduction(&request, model_store, reference_data)
+            }
+            (None, _) => Err(self
+                .model_error
+                .clone()
+                .unwrap_or_else(|| "model store is not loaded".to_string())),
+            (_, None) => Err(self
+                .reference_error
+                .clone()
+                .unwrap_or_else(|| "reference data is not loaded".to_string())),
+        };
+
+        match estimate {
             Ok(result) => {
                 self.result = Some(result);
                 let (sender, receiver) = mpsc::channel();
@@ -175,12 +190,22 @@ impl eframe::App for Co2App {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.label(RichText::new("CO2 Reduction Finder").size(24.0).strong());
-                    ui.label(RichText::new("에너지 감축계수 조회 Dashboard").color(Color32::from_rgb(96, 119, 122)));
+                    ui.label(
+                        RichText::new("에너지 감축계수 조회 Dashboard")
+                            .color(Color32::from_rgb(96, 119, 122)),
+                    );
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let label = if self.is_running { "계산 중" } else { "계산" };
+                    let label = if self.is_running {
+                        "계산 중"
+                    } else {
+                        "계산"
+                    };
                     if ui
-                        .add_enabled(!self.is_running, egui::Button::new(label).min_size([92.0, 38.0].into()))
+                        .add_enabled(
+                            !self.is_running,
+                            egui::Button::new(label).min_size([92.0, 38.0].into()),
+                        )
                         .clicked()
                     {
                         self.calculate();
@@ -213,15 +238,41 @@ impl Co2App {
         self.model_status_ui(ui);
         ui.separator();
 
-        labeled_combo(ui, "본과제용도분류", "building-type", &mut self.selected_building, BUILDING_TYPES.iter().map(|item| item.label));
+        labeled_combo(
+            ui,
+            "본과제용도분류",
+            "building-type",
+            &mut self.selected_building,
+            BUILDING_TYPES.iter().map(|item| item.label),
+        );
         let selected_type = BUILDING_TYPES[self.selected_building];
-        ui.label(if selected_type.residential { "주거" } else { "비주거" });
+        ui.label(if selected_type.residential {
+            "주거"
+        } else {
+            "비주거"
+        });
         ui.add_space(8.0);
-        labeled_combo(ui, "기후권", "climate-zone", &mut self.selected_climate, CLIMATES.iter().map(|item| item.label));
-        labeled_combo(ui, "준공연도", "era-band", &mut self.selected_era, ERAS.iter().map(|item| item.label));
+        labeled_combo(
+            ui,
+            "기후권",
+            "climate-zone",
+            &mut self.selected_climate,
+            CLIMATES.iter().map(|item| item.label),
+        );
+        labeled_combo(
+            ui,
+            "준공연도",
+            "era-band",
+            &mut self.selected_era,
+            ERAS.iter().map(|item| item.label),
+        );
 
         ui.add_space(8.0);
-        ui.label(RichText::new("연면적 m2").strong().color(Color32::from_rgb(82, 97, 100)));
+        ui.label(
+            RichText::new("연면적 m2")
+                .strong()
+                .color(Color32::from_rgb(82, 97, 100)),
+        );
         ui.add(
             egui::DragValue::new(&mut self.area_m2)
                 .speed(10.0)
@@ -354,7 +405,11 @@ impl Co2App {
 
     fn model_status_ui(&self, ui: &mut egui::Ui) {
         if let Some(store) = &self.model_store {
-            ui.label(RichText::new("모델 asset").strong().color(Color32::from_rgb(82, 97, 100)));
+            ui.label(
+                RichText::new("모델 asset")
+                    .strong()
+                    .color(Color32::from_rgb(82, 97, 100)),
+            );
             ui.label(format!(
                 "{} models / {:.2}M params",
                 store.len(),
@@ -369,7 +424,9 @@ impl Co2App {
                     let weight_prefix = self
                         .reference_data
                         .as_ref()
-                        .and_then(|data| Some((data.get(&model_1)?.weight, data.get(&model_2)?.weight)))
+                        .and_then(|data| {
+                            Some((data.get(&model_1)?.weight, data.get(&model_2)?.weight))
+                        })
                         .map(|(w1, w2)| format!("weights {:.3}/{:.3}; ", w1, w2))
                         .unwrap_or_default();
                     let metadata_prefix = self
@@ -380,8 +437,16 @@ impl Co2App {
                             format!(
                                 "{} / {} / {} / {:.1}m2; ",
                                 metadata.korean_name,
-                                if metadata.residential { "주거" } else { "비주거" },
-                                if metadata.gas_heating { "gas heat" } else { "non-gas heat" },
+                                if metadata.residential {
+                                    "주거"
+                                } else {
+                                    "비주거"
+                                },
+                                if metadata.gas_heating {
+                                    "gas heat"
+                                } else {
+                                    "non-gas heat"
+                                },
                                 metadata.area
                             )
                         })
@@ -403,7 +468,10 @@ impl Co2App {
             ui.small(status);
             ui.add_space(8.0);
         } else if let Some(error) = &self.model_error {
-            ui.colored_label(Color32::from_rgb(160, 54, 45), format!("model load failed: {error}"));
+            ui.colored_label(
+                Color32::from_rgb(160, 54, 45),
+                format!("model load failed: {error}"),
+            );
             ui.add_space(8.0);
         }
 
@@ -418,23 +486,44 @@ impl Co2App {
             }
             ui.add_space(8.0);
         } else if let Some(error) = &self.reference_error {
-            ui.colored_label(Color32::from_rgb(160, 54, 45), format!("metadata load failed: {error}"));
+            ui.colored_label(
+                Color32::from_rgb(160, 54, 45),
+                format!("metadata load failed: {error}"),
+            );
             ui.add_space(8.0);
         }
     }
 
     fn kpi_ui(&self, ui: &mut egui::Ui) {
         let baseline = self.result.as_ref().map(|result| &result.baseline);
-        let best = self
-            .result
-            .as_ref()
-            .and_then(|result| result.options.iter().max_by(|a, b| a.co2_reduction.total_cmp(&b.co2_reduction)));
+        let best = self.result.as_ref().and_then(|result| {
+            result
+                .options
+                .iter()
+                .max_by(|a, b| a.co2_reduction.total_cmp(&b.co2_reduction))
+        });
 
         ui.columns(4, |columns| {
-            kpi_cell(&mut columns[0], "전기 before", baseline.map(|value| value.elec));
-            kpi_cell(&mut columns[1], "가스 before", baseline.map(|value| value.gas));
-            kpi_cell(&mut columns[2], "온실가스 before", baseline.map(|value| value.co2));
-            kpi_cell(&mut columns[3], "최대 감축", best.map(|value| value.co2_reduction));
+            kpi_cell(
+                &mut columns[0],
+                "전기 before",
+                baseline.map(|value| value.elec),
+            );
+            kpi_cell(
+                &mut columns[1],
+                "가스 before",
+                baseline.map(|value| value.gas),
+            );
+            kpi_cell(
+                &mut columns[2],
+                "온실가스 before",
+                baseline.map(|value| value.co2),
+            );
+            kpi_cell(
+                &mut columns[3],
+                "최대 감축",
+                best.map(|value| value.co2_reduction),
+            );
         });
     }
 }
@@ -447,7 +536,11 @@ fn labeled_combo<'a>(
     labels: impl Iterator<Item = &'a str>,
 ) {
     let labels = labels.collect::<Vec<_>>();
-    ui.label(RichText::new(label).strong().color(Color32::from_rgb(82, 97, 100)));
+    ui.label(
+        RichText::new(label)
+            .strong()
+            .color(Color32::from_rgb(82, 97, 100)),
+    );
     egui::ComboBox::from_id_salt(id)
         .selected_text(labels[*selected])
         .width(230.0)
@@ -466,12 +559,43 @@ fn kpi_cell(ui: &mut egui::Ui, label: &str, value: Option<f64>) {
         .corner_radius(6.0)
         .inner_margin(12.0)
         .show(ui, |ui| {
-            ui.label(RichText::new(label).strong().color(Color32::from_rgb(82, 97, 100)));
-            ui.label(RichText::new(value.map(|v| format!("{v:.1}")).unwrap_or_else(|| "-".to_string())).size(26.0));
+            ui.label(
+                RichText::new(label)
+                    .strong()
+                    .color(Color32::from_rgb(82, 97, 100)),
+            );
+            ui.label(
+                RichText::new(
+                    value
+                        .map(|v| format!("{v:.1}"))
+                        .unwrap_or_else(|| "-".to_string()),
+                )
+                .size(26.0),
+            );
         });
 }
 
 fn apply_theme(ctx: &egui::Context) {
+    let mut fonts = FontDefinitions::default();
+    fonts.font_data.insert(
+        "pretendard".to_string(),
+        Arc::new(FontData::from_static(include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/fonts/Pretendard-Regular.ttf"
+        )))),
+    );
+    fonts
+        .families
+        .entry(FontFamily::Proportional)
+        .or_default()
+        .insert(0, "pretendard".to_string());
+    fonts
+        .families
+        .entry(FontFamily::Monospace)
+        .or_default()
+        .push("pretendard".to_string());
+    ctx.set_fonts(fonts);
+
     let mut visuals = egui::Visuals::light();
     visuals.panel_fill = Color32::from_rgb(245, 247, 248);
     visuals.window_fill = Color32::WHITE;

@@ -17,4 +17,3 @@ fn main() -> eframe::Result {
         Box::new(|cc| Ok(Box::new(app::Co2App::new(cc)))),
     )
 }
-

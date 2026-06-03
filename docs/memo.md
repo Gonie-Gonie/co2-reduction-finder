@@ -44,15 +44,16 @@ Last updated: 2026-06-03
 
 ## Current Implementation Baseline
 
-- `src/app.rs`: egui dashboard skeleton with dynamic comparison options and progress display.
-- `src/domain/coefficients.rs`: stub estimate and staged Pareto progress job placeholder.
+- `src/app.rs`: egui dashboard skeleton with dynamic comparison options, progress display, embedded Korean font support, and live ANN-backed calculation.
+- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, Python-style `_1/_2` sample split, and CO2 summaries.
 - `src/domain/mlp.rs`: custom Dense MLP forward pass with parallel batch prediction.
 - `src/domain/model_store.rs`: embedded compact model asset loader.
 - `src/domain/uncertainty.rs`: empirical distribution summary and smoothed histogram data.
-- `assets/models.c2m`: compact Dense MLP weights extracted from `.reference/pyCO2module/models/*.h5`.
+- `assets/models.c2m`: compact Dense MLP weights extracted from corrected `.reference/data-02 annmodels/*.h5`.
 - `assets/models_manifest.json`: generated model asset metadata.
 - `assets/info.csv`: UTF-8 normalized building/model metadata from reference `info.csv`.
 - `assets/Umap.csv`: UTF-8 normalized thermal-property map from reference `Umap.csv`.
+- `assets/fonts/Pretendard-Regular.ttf`: bundled OFL Korean font so the single exe does not depend on system CJK font fallback.
 - `scripts/setup.ps1`: repo-local Rust toolchain setup.
 - `scripts/extract_models.py`: developer-side H5 to compact model asset extraction.
 - `scripts/extract_reference_assets.py`: developer-side reference CSV normalization.
@@ -66,7 +67,14 @@ Last updated: 2026-06-03
 - Extracted inference-only f32 weights are about 22.2MB.
 - The corrected extracted models are all 25-input, 2-output Dense MLPs.
 - Building-type predictions must use the Python `get_coeff()` split strategy: `{Type}_1` predicts the first `int(weight * sample_count)` samples, and `{Type}_2` predicts the remaining samples. This is not a weighted average of prediction values.
+- Current app estimates already use the corrected embedded models and the split strategy above.
 - Full converted ECM lookup tables are not included because they are about 57MB each. They should be generated in Rust from compact rules/data.
+
+## Current Limitations
+
+- UI retrofit inputs are still boolean toggles. The Python lookup supports multi-level wall/roof/floor/window options, so the UI should expose those levels next.
+- Retrofit cost is still a simplified placeholder and needs the detailed constants/branches from `post_simulation.py`.
+- Pareto progress is still a staged preview job; real cancellable Pareto search is pending.
 
 ## Official References Checked
 

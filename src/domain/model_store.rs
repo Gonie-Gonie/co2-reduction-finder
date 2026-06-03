@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::domain::mlp::{Activation, DenseLayer, MlpModel};
 
-const MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/models.c2m"));
+const MODEL_BYTES: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/models.c2m"));
 const MAGIC: &[u8; 4] = b"C2M1";
 
 #[derive(Debug)]
@@ -66,7 +67,10 @@ impl EmbeddedModelStore {
         }
 
         if !reader.is_done() {
-            return Err(format!("{} trailing bytes in model asset", reader.remaining()));
+            return Err(format!(
+                "{} trailing bytes in model asset",
+                reader.remaining()
+            ));
         }
 
         Ok(Self {

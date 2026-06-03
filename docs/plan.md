@@ -21,12 +21,12 @@
 
 ## Milestone 2: Rust Calculation Engine
 
-- Port Umap conversion.
-- Port uncertain variable generation.
-- Port ANN MLP inference with parallel batch execution.
-- Port energy/CO2 statistics using both summary statistics and empirical sample distributions.
+- Port Umap conversion. Initial implementation done for baseline and boolean retrofit options.
+- Port uncertain variable generation. Initial deterministic LHS-style 1000-sample path done.
+- Port ANN MLP inference with parallel batch execution. Done for embedded corrected MLP assets.
+- Port energy/CO2 statistics using both summary statistics and empirical sample distributions. Initial summary path done; UI distribution output still pending.
 - Add smoothed histogram/density data for UI visualization.
-- Port retrofit cost calculation.
+- Port retrofit cost calculation. Detailed Python cost rules still pending; current app uses a placeholder cost.
 - Add focused unit tests for conversions, statistics, and cost branches.
 
 ## Milestone 3: Dashboard UI
@@ -53,3 +53,8 @@
 - Confirm actual artifact size.
 - Test on a clean Windows PC.
 - Reconsider Tauri only if the native GUI path becomes insufficient.
+
+## Milestone 6: Font And Portability Polish
+
+- Bundle an open Korean font in the executable. Done with Pretendard Regular.
+- Verify dashboard Korean text on a clean Windows machine.

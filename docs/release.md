@@ -17,8 +17,8 @@ The release executable is generated at `target/release/co2-reduction-finder.exe`
 Push a version tag:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 The workflow performs:
@@ -31,9 +31,8 @@ The workflow performs:
 
 ## Manual Release
 
-The `release` workflow can also be run manually from GitHub Actions. Enter `0.1.0` as the `version` input to create or update release tag `v0.1.0`.
+The `release` workflow can also be run manually from GitHub Actions. Enter `0.1.4` as the `version` input to create or update release tag `v0.1.4`.
 
 ## Tauri Track
 
 Tauri is not part of the current release path. It may be reconsidered later if a web-based UI becomes necessary.
-

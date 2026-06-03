@@ -101,6 +101,7 @@ Important: step 2 is sample splitting, not value blending. Python computes `mode
 - Persist enough per-option sample values to draw empirical distributions for gas, electricity, energy, and CO2.
 - UI smoothing should be visual-only; summary statistics should be computed from unsmoothed samples.
 - Candidate comparison should use uncertainty-aware dominance, not only point estimates.
+- Python uses `skopt.sampler.Lhs` for uncertain variables, transforms `people`, `equip`, `HW`, and `infil` through a normal inverse CDF with a three-sigma min/max range, then scales all uncertain ANN inputs to 0-1. The Rust path follows the same scaling and transform shape with a deterministic LHS-style sequence, not the exact Python random sequence.
 
 ## Pareto Efficiency Notes
 
@@ -122,6 +123,7 @@ Important: step 2 is sample splitting, not value blending. Python computes `mode
 ## Open Questions
 
 - The Excel dashboard layout still needs to be inspected carefully. Because the file is larger than 1GB, do not open it casually in automation.
-- H5 structure still needs extraction. The expected next artifact is a compact JSON/binary model format containing dense weights, biases, layer activations, input order, and model metadata.
 - Need confirm whether final deliverable means raw portable app `.exe`, NSIS setup `.exe`, or both.
 - Need choose the statistical dominance rule for staged Pareto filtering.
+- Need expose multi-level ECM choices in UI instead of reducing every selected measure to option code `1`.
+- Need port exact retrofit cost rules from `post_simulation.py`.

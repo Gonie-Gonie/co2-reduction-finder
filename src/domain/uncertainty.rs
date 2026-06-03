@@ -62,7 +62,10 @@ fn smoothed_histogram(sorted: &[f64], bins: usize) -> Vec<DistributionPoint> {
     let max = sorted[sorted.len() - 1];
 
     if (max - min).abs() < f64::EPSILON {
-        return vec![DistributionPoint { x: min, density: 1.0 }];
+        return vec![DistributionPoint {
+            x: min,
+            density: 1.0,
+        }];
     }
 
     let width = (max - min) / bins as f64;
@@ -78,8 +81,16 @@ fn smoothed_histogram(sorted: &[f64], bins: usize) -> Vec<DistributionPoint> {
 
     let mut smoothed = counts.clone();
     for index in 0..bins {
-        let previous = if index > 0 { counts[index - 1] } else { counts[index] };
-        let next = if index + 1 < bins { counts[index + 1] } else { counts[index] };
+        let previous = if index > 0 {
+            counts[index - 1]
+        } else {
+            counts[index]
+        };
+        let next = if index + 1 < bins {
+            counts[index + 1]
+        } else {
+            counts[index]
+        };
         smoothed[index] = previous * 0.25 + counts[index] * 0.5 + next * 0.25;
     }
 
@@ -100,12 +111,11 @@ mod tests {
 
     #[test]
     fn summarizes_empirical_distribution() {
-        let summary = summarize_distribution(&[1.0, 2.0, 3.0, 4.0, 5.0], 5)
-            .expect("summary should succeed");
+        let summary =
+            summarize_distribution(&[1.0, 2.0, 3.0, 4.0, 5.0], 5).expect("summary should succeed");
 
         assert_eq!(summary.mean, 3.0);
         assert_eq!(summary.p50, 3.0);
         assert_eq!(summary.smoothed.len(), 5);
     }
 }
-
