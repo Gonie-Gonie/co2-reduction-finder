@@ -75,7 +75,9 @@ Last updated: 2026-06-03
 ## Current Limitations
 
 - Pareto dominance currently uses point estimates from staged sample counts; uncertainty-band dominance still needs a richer sample-distribution result type.
-- Pareto runs automatically for the selected building context and is reset/restarted when the building type, climate, era, area, or selected metric changes.
+- Pareto runs automatically for the selected building context and is reset/restarted when the building type, climate, era, or area changes.
+- Each Pareto run now keeps metric-specific fronts for all dashboard metrics, so switching the selected metric should not trigger a Pareto recomputation.
+- The UI is organized as top building/option inputs plus two lower tabs: `리모델링 대안 비교` and `기준 조건 분석`.
 - The graph layout is now sectioned like Excel `MAIN`, but exact visual styling can still be refined after user feedback on built exe screenshots.
 - UI distribution curves currently use the computed mean/std result layer that matches Excel's dashboard plotting flow; a later refinement can expose empirical smoothed histograms from raw sample arrays.
 

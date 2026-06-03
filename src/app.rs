@@ -15,9 +15,15 @@ use eframe::egui::{
 use crate::domain::{
     BUILDING_TYPES, BinaryRetrofitMeasure, CLIMATES, ERAS, EmbeddedModelStore, EnergyMetric,
     EnergyStats, EnergyValues, EstimateRequest, EstimateResult, OptionEstimate,
-    ParetoProgressEvent, ReferenceData, RetrofitOption, RetrofitSpec, estimate_reduction,
-    run_pareto_job,
+    ParetoProgressEvent, ParetoResultSet, ReferenceData, RetrofitOption, RetrofitSpec,
+    estimate_reduction, run_pareto_job,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DashboardTab {
+    Alternatives,
+    BaselineAnalysis,
+}
 
 pub struct Co2App {
     selected_building: usize,
@@ -27,9 +33,10 @@ pub struct Co2App {
     area_m2: f64,
     options: Vec<RetrofitOption>,
     next_option_id: u64,
+    active_tab: DashboardTab,
     user_result: Option<EstimateResult>,
     single_result: Option<EstimateResult>,
-    pareto_result: Option<EstimateResult>,
+    pareto_results: Option<ParetoResultSet>,
     error: Option<String>,
     model_store: Option<EmbeddedModelStore>,
     model_error: Option<String>,
@@ -82,9 +89,10 @@ impl Co2App {
                 },
             ],
             next_option_id: 3,
+            active_tab: DashboardTab::Alternatives,
             user_result: None,
             single_result: None,
-            pareto_result: None,
+            pareto_results: None,
             error: None,
             model_store,
             model_error,
@@ -131,12 +139,8 @@ impl Co2App {
 
     fn pareto_context_signature(&self) -> String {
         format!(
-            "{}|{}|{}|{:.3}|{:?}",
-            self.selected_building,
-            self.selected_climate,
-            self.selected_era,
-            self.area_m2,
-            self.selected_metric
+            "{}|{}|{}|{:.3}",
+            self.selected_building, self.selected_climate, self.selected_era, self.area_m2
         )
     }
 
@@ -184,7 +188,7 @@ impl Co2App {
 
     fn start_pareto(&mut self) {
         self.error = None;
-        self.pareto_result = None;
+        self.pareto_results = None;
         self.progress_rx = None;
         self.progress_cancel = None;
         self.progress = 0.0;
@@ -235,7 +239,7 @@ impl Co2App {
                 self.progress = event.progress;
                 self.progress_message = event.message;
                 if let Some(result) = event.result {
-                    self.pareto_result = Some(result);
+                    self.pareto_results = Some(result);
                 }
                 if let Some(error) = event.error {
                     self.error = Some(error);
@@ -269,6 +273,12 @@ impl Co2App {
         self.next_option_id += 1;
         self.options.push(option);
     }
+
+    fn pareto_result_for_metric(&self) -> Option<&EstimateResult> {
+        self.pareto_results
+            .as_ref()
+            .and_then(|results| results.result_for(self.selected_metric))
+    }
 }
 
 impl eframe::App for Co2App {
@@ -289,34 +299,13 @@ impl eframe::App for Co2App {
                     );
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let label = if self.is_running {
-                        "중지"
-                    } else {
-                        "Pareto 갱신"
-                    };
-                    if ui
-                        .add(egui::Button::new(label).min_size([108.0, 38.0].into()))
-                        .clicked()
-                    {
-                        if self.is_running {
-                            self.cancel_pareto();
-                        } else {
-                            self.start_pareto();
-                        }
+                    if self.is_running {
+                        ui.label(RichText::new(&self.progress_message).color(MUTED_TEXT));
                     }
                 });
             });
             ui.add_space(6.0);
         });
-
-        egui::Panel::left("controls")
-            .resizable(false)
-            .exact_size(390.0)
-            .show_inside(ui, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.controls_ui(ui);
-                });
-            });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
             self.dashboard_ui(ui);
@@ -332,9 +321,24 @@ impl eframe::App for Co2App {
 }
 
 impl Co2App {
-    fn controls_ui(&mut self, ui: &mut egui::Ui) {
-        ui.add_space(8.0);
-        ui.heading("기준 조건");
+    fn input_area_ui(&mut self, ui: &mut egui::Ui) {
+        ui.add_space(10.0);
+        ui.horizontal_top(|ui| {
+            ui.set_min_height(270.0);
+            ui.vertical(|ui| {
+                ui.set_width(340.0);
+                self.building_info_ui(ui);
+            });
+            ui.add_space(16.0);
+            ui.vertical(|ui| {
+                self.comparison_options_ui(ui);
+            });
+        });
+        ui.add_space(12.0);
+    }
+
+    fn building_info_ui(&mut self, ui: &mut egui::Ui) {
+        section_header(ui, "건물 정보");
         ui.add_space(8.0);
         self.data_status_ui(ui);
 
@@ -379,14 +383,16 @@ impl Co2App {
                 .range(1.0..=10_000_000.0)
                 .fixed_decimals(1),
         );
+    }
 
-        ui.separator();
+    fn comparison_options_ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.heading("비교안");
+            section_header(ui, "비교안");
             if ui.button("+").on_hover_text("비교안 추가").clicked() {
                 self.add_option();
             }
         });
+        ui.add_space(8.0);
 
         let mut duplicate_index = None;
         let mut remove_id = None;
@@ -401,13 +407,13 @@ impl Co2App {
                 egui::ScrollArea::horizontal().show(ui, |ui| {
                     egui::Grid::new("option-input-table")
                         .striped(true)
-                        .min_col_width(82.0)
+                        .min_col_width(96.0)
                         .show(ui, |ui| {
                             ui.strong("항목");
                             for option in &mut self.options {
                                 ui.add(
                                     egui::TextEdit::singleline(&mut option.label)
-                                        .desired_width(92.0),
+                                        .desired_width(104.0),
                                 );
                             }
                             ui.end_row();
@@ -480,24 +486,58 @@ impl Co2App {
 
     fn dashboard_ui(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add_space(8.0);
+            self.input_area_ui(ui);
+            ui.separator();
+            ui.add_space(10.0);
             self.metric_selector_ui(ui);
-            ui.add_space(8.0);
-            self.kpi_ui(ui);
 
             if let Some(error) = &self.error {
                 ui.add_space(8.0);
                 ui.colored_label(Color32::from_rgb(160, 54, 45), error);
             }
 
-            ui.add_space(18.0);
-            self.user_result_section(ui);
-            ui.add_space(18.0);
-            self.single_effect_section(ui);
-            ui.add_space(18.0);
-            self.pareto_section(ui);
+            ui.add_space(12.0);
+            self.tab_selector_ui(ui);
+            ui.add_space(12.0);
+            match self.active_tab {
+                DashboardTab::Alternatives => self.alternatives_tab_ui(ui),
+                DashboardTab::BaselineAnalysis => self.baseline_analysis_tab_ui(ui),
+            }
             ui.add_space(18.0);
         });
+    }
+
+    fn tab_selector_ui(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            tab_button(
+                ui,
+                &mut self.active_tab,
+                DashboardTab::Alternatives,
+                "리모델링 대안 비교",
+            );
+            tab_button(
+                ui,
+                &mut self.active_tab,
+                DashboardTab::BaselineAnalysis,
+                "기준 조건 분석",
+            );
+        });
+    }
+
+    fn alternatives_tab_ui(&self, ui: &mut egui::Ui) {
+        section_header(ui, "리모델링 대안 비교");
+        ui.add_space(8.0);
+        self.kpi_ui(ui);
+        ui.add_space(16.0);
+        self.user_result_section(ui);
+    }
+
+    fn baseline_analysis_tab_ui(&self, ui: &mut egui::Ui) {
+        section_header(ui, "기준 조건 분석");
+        ui.add_space(10.0);
+        self.single_effect_section(ui);
+        ui.add_space(18.0);
+        self.pareto_section(ui);
     }
 
     fn metric_selector_ui(&mut self, ui: &mut egui::Ui) {
@@ -530,19 +570,11 @@ impl Co2App {
                 }
             }
         });
-        let factor = self.selected_metric.factor();
-        ui.small(
-            RichText::new(format!(
-                "계수 G {:.5} / E {:.5} / {} -> {}",
-                factor.gas, factor.elec, factor.per_area_unit, factor.unit
-            ))
-            .color(Color32::from_rgb(96, 119, 122)),
-        );
     }
 
     fn user_result_section(&self, ui: &mut egui::Ui) {
-        section_header(ui, "사용자 입력 결과");
         if let Some(result) = &self.user_result {
+            subsection_label(ui, "확률분포");
             let series = std::iter::once(("리모델링 이전".to_string(), result.baseline))
                 .chain(
                     result
@@ -560,6 +592,7 @@ impl Co2App {
             );
             ui.add_space(8.0);
 
+            subsection_label(ui, "감축량 및 공사비");
             let bars = result
                 .options
                 .iter()
@@ -579,14 +612,6 @@ impl Co2App {
                 &bars,
                 self.selected_metric.factor().unit,
                 180.0,
-            );
-            ui.add_space(8.0);
-            result_table(
-                ui,
-                "user-result-table",
-                result,
-                self.selected_metric,
-                self.area_m2,
             );
         } else {
             ui.label("결과를 계산할 수 없습니다.");
@@ -639,7 +664,7 @@ impl Co2App {
         ui.add(egui::ProgressBar::new(self.progress).show_percentage());
         ui.add_space(8.0);
 
-        if let Some(result) = &self.pareto_result {
+        if let Some(result) = self.pareto_result_for_metric() {
             scatter_chart(
                 ui,
                 "pareto-scatter",
@@ -690,7 +715,6 @@ impl Co2App {
 
     fn kpi_ui(&self, ui: &mut egui::Ui) {
         let factor = self.selected_metric.factor();
-        section_header(ui, "결과 요약");
         egui::Frame::default()
             .stroke(Stroke::new(1.0, Color32::from_rgb(216, 226, 226)))
             .fill(Color32::WHITE)
@@ -705,12 +729,12 @@ impl Co2App {
                             .min_col_width(88.0)
                             .show(ui, |ui| {
                                 ui.strong("구분");
-                                ui.strong(format!("전 [{}]", factor.unit));
-                                ui.strong(format!("후 [{}]", factor.unit));
-                                ui.strong(format!("감축 [{}]", factor.unit));
-                                ui.strong("감축률");
-                                ui.strong("표준편차");
-                                ui.strong("공사비");
+                                numeric_header(ui, &format!("전 [{}]", factor.unit), 92.0);
+                                numeric_header(ui, &format!("후 [{}]", factor.unit), 92.0);
+                                numeric_header(ui, &format!("감축 [{}]", factor.unit), 104.0);
+                                numeric_header(ui, "감축률", 76.0);
+                                numeric_header(ui, "표준편차", 88.0);
+                                numeric_header(ui, "공사비", 112.0);
                                 ui.end_row();
 
                                 if let Some(result) = &self.user_result {
@@ -725,12 +749,12 @@ impl Co2App {
                                         self.area_m2,
                                     );
                                     ui.strong("리모델링 이전");
-                                    ui.label(format_number(before));
-                                    ui.label("-");
-                                    ui.label("-");
-                                    ui.label("-");
-                                    ui.label(format_number(before_std));
-                                    ui.label("-");
+                                    numeric_cell(ui, format_number(before), 92.0);
+                                    numeric_cell(ui, "-", 92.0);
+                                    numeric_cell(ui, "-", 104.0);
+                                    numeric_cell(ui, "-", 76.0);
+                                    numeric_cell(ui, format_number(before_std), 88.0);
+                                    numeric_cell(ui, "-", 112.0);
                                     ui.end_row();
 
                                     for item in &result.options {
@@ -744,12 +768,12 @@ impl Co2App {
                                     }
                                 } else {
                                     ui.label("결과 없음");
-                                    ui.label("-");
-                                    ui.label("-");
-                                    ui.label("-");
-                                    ui.label("-");
-                                    ui.label("-");
-                                    ui.label("-");
+                                    numeric_cell(ui, "-", 92.0);
+                                    numeric_cell(ui, "-", 92.0);
+                                    numeric_cell(ui, "-", 104.0);
+                                    numeric_cell(ui, "-", 76.0);
+                                    numeric_cell(ui, "-", 88.0);
+                                    numeric_cell(ui, "-", 112.0);
                                     ui.end_row();
                                 }
                             });
@@ -776,6 +800,12 @@ struct EffectBarItem {
 struct AxisRange {
     min: f64,
     max: f64,
+}
+
+#[derive(Debug, Clone)]
+struct DisplayScale {
+    unit: String,
+    divisor: f64,
 }
 
 const GRID_COLOR: Color32 = Color32::from_rgb(229, 235, 235);
@@ -928,6 +958,65 @@ fn section_header(ui: &mut egui::Ui, title: &str) {
     });
 }
 
+fn subsection_label(ui: &mut egui::Ui, title: &str) {
+    ui.label(
+        RichText::new(title)
+            .size(15.0)
+            .strong()
+            .color(Color32::from_rgb(82, 97, 100)),
+    );
+    ui.add_space(4.0);
+}
+
+fn tab_button(ui: &mut egui::Ui, selected: &mut DashboardTab, value: DashboardTab, label: &str) {
+    let is_selected = *selected == value;
+    let text = if is_selected {
+        RichText::new(label).strong().color(Color32::WHITE)
+    } else {
+        RichText::new(label).color(TEXT_COLOR)
+    };
+    let button = egui::Button::new(text)
+        .min_size(Vec2::new(150.0, 34.0))
+        .fill(if is_selected {
+            ACCENT
+        } else {
+            Color32::from_rgb(232, 238, 238)
+        })
+        .stroke(Stroke::new(
+            1.0,
+            if is_selected {
+                ACCENT
+            } else {
+                Color32::from_rgb(196, 211, 212)
+            },
+        ));
+    if ui.add(button).clicked() {
+        *selected = value;
+    }
+}
+
+fn numeric_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
+    let text = text.into();
+    ui.allocate_ui_with_layout(
+        Vec2::new(width, 18.0),
+        egui::Layout::right_to_left(egui::Align::Center),
+        |ui| {
+            ui.label(text);
+        },
+    );
+}
+
+fn numeric_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
+    let text = text.into();
+    ui.allocate_ui_with_layout(
+        Vec2::new(width, 18.0),
+        egui::Layout::right_to_left(egui::Align::Center),
+        |ui| {
+            ui.strong(text);
+        },
+    );
+}
+
 fn density_chart(
     ui: &mut egui::Ui,
     id: &str,
@@ -936,7 +1025,11 @@ fn density_chart(
     area_m2: f64,
 ) {
     ui.push_id(id, |ui| {
-        let desired = Vec2::new(chart_available_width(ui), 240.0);
+        let legend_rows = ((series.len().max(1) + 2) / 3) as f32;
+        let desired = Vec2::new(
+            chart_available_width(ui),
+            240.0 + (legend_rows - 1.0) * 18.0,
+        );
         let (rect, _) = ui.allocate_exact_size(desired, Sense::hover());
         let painter = ui.painter_at(rect);
         chart_background(&painter, rect);
@@ -945,31 +1038,40 @@ fn density_chart(
             return;
         }
 
-        let mut max_x = f64::NEG_INFINITY;
-        let mut max_y = 0.0_f64;
+        let mut raw_max_x = f64::NEG_INFINITY;
         for (_, stats) in series {
             let mean = metric_display_value(metric, stats.mean, area_m2);
             let std = metric_display_value(metric, stats.std, area_m2)
                 .abs()
                 .max(0.001);
-            max_x = max_x.max(mean + std * 3.0);
-            max_y = max_y.max(normal_pdf(mean, mean, std));
+            raw_max_x = raw_max_x.max(mean + std * 3.0);
         }
 
-        if !max_x.is_finite() {
+        if !raw_max_x.is_finite() {
             return;
         }
 
-        let factor = metric.factor();
+        let scale = metric_chart_scale(metric, raw_max_x);
+        let max_x = raw_max_x / scale.divisor;
+        let mut max_y = 0.0_f64;
+        for (_, stats) in series {
+            let mean = metric_display_value(metric, stats.mean, area_m2) / scale.divisor;
+            let std = (metric_display_value(metric, stats.std, area_m2) / scale.divisor)
+                .abs()
+                .max(0.001);
+            max_y = max_y.max(normal_pdf(mean, mean, std));
+        }
+
         let x_axis = axis_from_zero(max_x);
         let y_axis = axis_from_zero(max_y);
-        let plot = plot_rect(rect, 56.0, 18.0, 44.0, 52.0);
+        let legend_height = 18.0 * legend_rows + 18.0;
+        let plot = plot_rect(rect, 64.0, 22.0, legend_height + 18.0, 52.0);
         draw_chart_grid(
             &painter,
             plot,
             x_axis,
             y_axis,
-            &format!("배출/사용량 [{}]", factor.unit),
+            &format!("배출/사용량 [{}]", scale.unit),
             "밀도",
         );
         let colors = [
@@ -981,8 +1083,8 @@ fn density_chart(
         ];
 
         for (index, (label, stats)) in series.iter().enumerate() {
-            let mean = metric_display_value(metric, stats.mean, area_m2);
-            let std = metric_display_value(metric, stats.std, area_m2)
+            let mean = metric_display_value(metric, stats.mean, area_m2) / scale.divisor;
+            let std = (metric_display_value(metric, stats.std, area_m2) / scale.divisor)
                 .abs()
                 .max(0.001);
             let color = colors[index % colors.len()];
@@ -995,8 +1097,8 @@ fn density_chart(
             }
             painter.add(Shape::line(points, Stroke::new(2.0, color)));
 
-            let legend_y = rect.top() + 14.0 + (index % 3) as f32 * 18.0;
-            let legend_x = rect.left() + 16.0 + (index / 3) as f32 * 180.0;
+            let legend_y = rect.top() + 16.0 + (index / 3) as f32 * 18.0;
+            let legend_x = rect.left() + 18.0 + (index % 3) as f32 * 180.0;
             painter.rect_filled(
                 Rect::from_min_size(Pos2::new(legend_x, legend_y + 4.0), Vec2::new(18.0, 4.0)),
                 2.0,
@@ -1031,9 +1133,20 @@ fn horizontal_bar_chart(
             return;
         }
 
+        let max_abs = items
+            .iter()
+            .map(|item| item.value.abs())
+            .fold(0.0_f64, f64::max);
+        let scale = chart_value_scale(unit, max_abs);
         let plot = plot_rect(rect, 132.0, 172.0, 28.0, 46.0);
-        let min_value = items.iter().map(|item| item.value).fold(0.0_f64, f64::min);
-        let max_value = items.iter().map(|item| item.value).fold(0.0_f64, f64::max);
+        let min_value = items
+            .iter()
+            .map(|item| item.value / scale.divisor)
+            .fold(0.0_f64, f64::min);
+        let max_value = items
+            .iter()
+            .map(|item| item.value / scale.divisor)
+            .fold(0.0_f64, f64::max);
         let x_axis = signed_axis(min_value, max_value);
         for tick in ticks(x_axis, 5) {
             let x = map_x(plot, x_axis, tick);
@@ -1067,7 +1180,7 @@ fn horizontal_bar_chart(
         painter.text(
             Pos2::new(plot.center().x, plot.bottom() + 34.0),
             Align2::CENTER_CENTER,
-            format!("감축량 [{unit}]"),
+            format!("감축량 [{}]", scale.unit),
             egui::FontId::proportional(12.0),
             MUTED_TEXT,
         );
@@ -1075,7 +1188,8 @@ fn horizontal_bar_chart(
         let row_h = (plot.height() / items.len() as f32).max(20.0);
         for (index, item) in items.iter().enumerate() {
             let y = plot.top() + row_h * (index as f32 + 0.5);
-            let value_x = map_x(plot, x_axis, item.value);
+            let display_value = item.value / scale.divisor;
+            let value_x = map_x(plot, x_axis, display_value);
             let left = zero_x.min(value_x);
             let right = zero_x.max(value_x);
             let color = if item.value >= 0.0 {
@@ -1098,7 +1212,7 @@ fn horizontal_bar_chart(
                 egui::FontId::proportional(12.0),
                 TEXT_COLOR,
             );
-            let value_label = format_number(item.value);
+            let value_label = format_number(display_value);
             let label_text = match item.cost {
                 Some(cost) => format!("{value_label} / {}", format_cost(cost)),
                 None => value_label,
@@ -1106,7 +1220,7 @@ fn horizontal_bar_chart(
             let estimated_label_width = label_text.chars().count() as f32 * 7.0;
             let (label_x, label_align, label_color) = if item.value >= 0.0 {
                 let x = right + 8.0;
-                if item.value >= x_axis.max * 0.65 {
+                if display_value >= x_axis.max * 0.65 {
                     (plot.right() - 8.0, Align2::RIGHT_CENTER, Color32::WHITE)
                 } else if x + estimated_label_width > rect.right() - 10.0 {
                     (rect.right() - 10.0, Align2::RIGHT_CENTER, TEXT_COLOR)
@@ -1155,7 +1269,8 @@ fn single_effect_bar_chart(
             .iter()
             .map(|item| item.reduction)
             .fold(0.0_f64, f64::max);
-        let x_axis = axis_from_zero(max_reduction);
+        let scale = chart_value_scale(unit, max_reduction);
+        let x_axis = axis_from_zero(max_reduction / scale.divisor);
         let plot = plot_rect(rect, 144.0, 152.0, 46.0, 54.0);
 
         for tick in ticks(x_axis, 5) {
@@ -1171,7 +1286,7 @@ fn single_effect_bar_chart(
                 egui::FontId::proportional(11.0),
                 MUTED_TEXT,
             );
-            let rate_tick = reduction_rate(baseline, tick) * 100.0;
+            let rate_tick = reduction_rate(baseline, tick * scale.divisor) * 100.0;
             painter.text(
                 Pos2::new(x, plot.bottom() + 18.0),
                 Align2::CENTER_CENTER,
@@ -1198,7 +1313,7 @@ fn single_effect_bar_chart(
         painter.text(
             Pos2::new(plot.center().x, rect.top() + 18.0),
             Align2::CENTER_CENTER,
-            format!("감축량 [{unit}]"),
+            format!("감축량 [{}]", scale.unit),
             egui::FontId::proportional(12.0),
             MUTED_TEXT,
         );
@@ -1213,7 +1328,8 @@ fn single_effect_bar_chart(
         let row_h = (plot.height() / items.len() as f32).max(22.0);
         for (index, item) in items.iter().enumerate() {
             let y = plot.top() + row_h * (index as f32 + 0.5);
-            let value_x = map_x(plot, x_axis, item.reduction);
+            let display_reduction = item.reduction / scale.divisor;
+            let value_x = map_x(plot, x_axis, display_reduction);
             painter.rect_filled(
                 Rect::from_min_max(
                     Pos2::new(plot.left(), y - row_h * 0.28),
@@ -1231,12 +1347,12 @@ fn single_effect_bar_chart(
             );
             let label_text = format!(
                 "{} / {}",
-                format_number(item.reduction),
+                format_number(display_reduction),
                 format_percent(item.rate)
             );
             let estimated_label_width = label_text.chars().count() as f32 * 7.0;
             let label_x = value_x + 8.0;
-            let (label_x, label_align, label_color) = if item.reduction >= x_axis.max * 0.65 {
+            let (label_x, label_align, label_color) = if display_reduction >= x_axis.max * 0.65 {
                 (plot.right() - 8.0, Align2::RIGHT_CENTER, Color32::WHITE)
             } else if label_x + estimated_label_width > rect.right() - 10.0 {
                 (rect.right() - 10.0, Align2::RIGHT_CENTER, TEXT_COLOR)
@@ -1272,7 +1388,7 @@ fn scatter_chart(
             return;
         }
 
-        let max_cost = result
+        let max_cost_manwon = result
             .options
             .iter()
             .map(|item| item.cost as f64 / 10_000.0)
@@ -1284,21 +1400,23 @@ fn scatter_chart(
             .map(|item| metric_display_value(metric, item.reduction.mean, area_m2))
             .fold(0.0, f64::max)
             .max(0.0);
-        let x_axis = axis_from_zero(max_cost);
-        let y_axis = axis_from_zero(max_reduction);
-        let factor = metric.factor();
+        let cost_scale = cost_chart_scale(max_cost_manwon);
+        let reduction_scale = metric_chart_scale(metric, max_reduction);
+        let x_axis = axis_from_zero(max_cost_manwon / cost_scale.divisor);
+        let y_axis = axis_from_zero(max_reduction / reduction_scale.divisor);
         draw_chart_grid(
             &painter,
             plot,
             x_axis,
             y_axis,
-            "공사비 [만원]",
-            &format!("감축량 [{}]", factor.unit),
+            &format!("공사비 [{}]", cost_scale.unit),
+            &format!("감축량 [{}]", reduction_scale.unit),
         );
 
         for item in &result.options {
-            let x_value = item.cost as f64 / 10_000.0;
-            let y_value = metric_display_value(metric, item.reduction.mean, area_m2);
+            let x_value = (item.cost as f64 / 10_000.0) / cost_scale.divisor;
+            let y_value = metric_display_value(metric, item.reduction.mean, area_m2)
+                / reduction_scale.divisor;
             let point = Pos2::new(map_x(plot, x_axis, x_value), map_y(plot, y_axis, y_value));
             painter.circle_filled(point, 4.5, ACCENT);
             let label_pos = Pos2::new(
@@ -1348,12 +1466,12 @@ fn result_table(
                 .min_col_width(86.0)
                 .show(ui, |ui| {
                     ui.strong("구분");
-                    ui.strong(format!("전 [{}]", factor.unit));
-                    ui.strong(format!("후 [{}]", factor.unit));
-                    ui.strong(format!("감축 [{}]", factor.unit));
-                    ui.strong("감축률");
-                    ui.strong("표준편차");
-                    ui.strong("공사비");
+                    numeric_header(ui, &format!("전 [{}]", factor.unit), 92.0);
+                    numeric_header(ui, &format!("후 [{}]", factor.unit), 92.0);
+                    numeric_header(ui, &format!("감축 [{}]", factor.unit), 104.0);
+                    numeric_header(ui, "감축률", 76.0);
+                    numeric_header(ui, "표준편차", 88.0);
+                    numeric_header(ui, "공사비", 112.0);
                     ui.end_row();
 
                     let before = metric_display_value(metric, result.baseline.mean, area_m2);
@@ -1381,16 +1499,16 @@ fn option_row(
         ui.label(short_label(&item.label, 24));
     });
     if full {
-        ui.label(format_number(before));
-        ui.label(format_number(after));
-        ui.label(format_number(reduction));
-        ui.label(format_percent(rate));
-        ui.label(format_number(std));
-        ui.label(format_cost(item.cost));
+        numeric_cell(ui, format_number(before), 92.0);
+        numeric_cell(ui, format_number(after), 92.0);
+        numeric_cell(ui, format_number(reduction), 104.0);
+        numeric_cell(ui, format_percent(rate), 76.0);
+        numeric_cell(ui, format_number(std), 88.0);
+        numeric_cell(ui, format_cost(item.cost), 112.0);
     } else {
-        ui.label(format_number(reduction));
-        ui.label(format_percent(rate));
-        ui.label(format_cost(item.cost));
+        numeric_cell(ui, format_number(reduction), 104.0);
+        numeric_cell(ui, format_percent(rate), 76.0);
+        numeric_cell(ui, format_cost(item.cost), 112.0);
     }
     ui.end_row();
 }
@@ -1410,12 +1528,12 @@ fn summary_option_row(
     ui.push_id(item.id, |ui| {
         ui.label(short_label(&item.label, 22));
     });
-    ui.label(format_number(before));
-    ui.label(format_number(after));
-    ui.label(format_number(reduction));
-    ui.label(format_percent(rate));
-    ui.label(format_number(std));
-    ui.label(format_cost(item.cost));
+    numeric_cell(ui, format_number(before), 92.0);
+    numeric_cell(ui, format_number(after), 92.0);
+    numeric_cell(ui, format_number(reduction), 104.0);
+    numeric_cell(ui, format_percent(rate), 76.0);
+    numeric_cell(ui, format_number(std), 88.0);
+    numeric_cell(ui, format_cost(item.cost), 112.0);
     ui.end_row();
 }
 
@@ -1595,6 +1713,50 @@ fn draw_chart_grid(
         egui::FontId::proportional(12.0),
         MUTED_TEXT,
     );
+}
+
+fn metric_chart_scale(metric: EnergyMetric, max_abs: f64) -> DisplayScale {
+    chart_value_scale(metric.factor().unit, max_abs)
+}
+
+fn chart_value_scale(unit: &str, max_abs: f64) -> DisplayScale {
+    let max_abs = max_abs.abs();
+    match unit {
+        "MWh" if max_abs < 1.0 => DisplayScale {
+            unit: "kWh".to_string(),
+            divisor: 0.001,
+        },
+        "MWh" if max_abs >= 1000.0 => DisplayScale {
+            unit: "GWh".to_string(),
+            divisor: 1000.0,
+        },
+        "tCO2eq" if max_abs < 1.0 => DisplayScale {
+            unit: "kgCO2eq".to_string(),
+            divisor: 0.001,
+        },
+        "tCO2eq" if max_abs >= 1000.0 => DisplayScale {
+            unit: "ktCO2eq".to_string(),
+            divisor: 1000.0,
+        },
+        _ => DisplayScale {
+            unit: unit.to_string(),
+            divisor: 1.0,
+        },
+    }
+}
+
+fn cost_chart_scale(max_manwon: f64) -> DisplayScale {
+    if max_manwon >= 10_000.0 {
+        DisplayScale {
+            unit: "억원".to_string(),
+            divisor: 10_000.0,
+        }
+    } else {
+        DisplayScale {
+            unit: "만원".to_string(),
+            divisor: 1.0,
+        }
+    }
 }
 
 fn normal_pdf(x: f64, mean: f64, std: f64) -> f64 {

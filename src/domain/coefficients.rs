@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -235,10 +236,30 @@ pub struct EstimateResult {
 }
 
 #[derive(Debug, Clone)]
+pub struct ParetoMetricResult {
+    pub metric: EnergyMetric,
+    pub result: EstimateResult,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParetoResultSet {
+    pub results: Vec<ParetoMetricResult>,
+}
+
+impl ParetoResultSet {
+    pub fn result_for(&self, metric: EnergyMetric) -> Option<&EstimateResult> {
+        self.results
+            .iter()
+            .find(|item| item.metric == metric)
+            .map(|item| &item.result)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ParetoProgressEvent {
     pub progress: f32,
     pub message: String,
-    pub result: Option<EstimateResult>,
+    pub result: Option<ParetoResultSet>,
     pub error: Option<String>,
 }
 
@@ -252,7 +273,7 @@ impl ParetoProgressEvent {
         }
     }
 
-    fn finished(message: impl Into<String>, result: EstimateResult) -> Self {
+    fn finished(message: impl Into<String>, result: ParetoResultSet) -> Self {
         Self {
             progress: 1.0,
             message: message.into(),
@@ -597,7 +618,7 @@ fn run_pareto_job_inner(
     reference_data: &ReferenceData,
     sender: &Sender<ParetoProgressEvent>,
     cancel: &AtomicBool,
-) -> Result<EstimateResult, String> {
+) -> Result<ParetoResultSet, String> {
     send_progress(sender, cancel, 0.01, "Pareto 후보 생성")?;
     let candidates = generate_pareto_candidates();
 
@@ -618,13 +639,10 @@ fn run_pareto_job_inner(
         sender,
         cancel,
     )?;
-    let intermediate_options = limit_front(
-        pareto_front(screened, request.metric),
-        PARETO_INTERMEDIATE_LIMIT,
-    )
-    .into_iter()
-    .map(|candidate| candidate.option)
-    .collect::<Vec<_>>();
+    let intermediate_options = combined_limited_front(&screened, PARETO_INTERMEDIATE_LIMIT)
+        .into_iter()
+        .map(|candidate| candidate.option)
+        .collect::<Vec<_>>();
 
     send_progress(
         sender,
@@ -643,13 +661,10 @@ fn run_pareto_job_inner(
         sender,
         cancel,
     )?;
-    let final_options = limit_front(
-        pareto_front(intermediate, request.metric),
-        PARETO_FINAL_LIMIT,
-    )
-    .into_iter()
-    .map(|candidate| candidate.option)
-    .collect::<Vec<_>>();
+    let final_options = combined_limited_front(&intermediate, PARETO_FINAL_LIMIT)
+        .into_iter()
+        .map(|candidate| candidate.option)
+        .collect::<Vec<_>>();
 
     send_progress(
         sender,
@@ -668,37 +683,44 @@ fn run_pareto_job_inner(
         sender,
         cancel,
     )?;
-    let mut final_front = limit_front(
-        pareto_front(final_scored, request.metric),
-        PARETO_FINAL_LIMIT,
-    );
-    final_front.sort_by(|a, b| {
-        a.estimate.cost.cmp(&b.estimate.cost).then_with(|| {
-            estimate_metric_reduction(&b.estimate, request.metric)
-                .total_cmp(&estimate_metric_reduction(&a.estimate, request.metric))
-        })
-    });
+    send_progress(sender, cancel, 0.98, "지표별 Pareto 결과 정렬")?;
 
-    let mut final_request = request.clone();
-    let options = final_front
-        .into_iter()
-        .enumerate()
-        .map(|(index, candidate)| {
-            let mut option = candidate.option;
-            option.id = 100_000 + index as u64;
-            option.label = format!("Pareto {}: {}", index + 1, option.spec.summary_label());
-            option
-        })
-        .collect::<Vec<_>>();
-    final_request.options = options;
+    let mut results = Vec::with_capacity(EnergyMetric::ALL.len());
+    for metric in EnergyMetric::ALL {
+        let mut final_front = limit_front(
+            pareto_front(final_scored.clone(), metric),
+            PARETO_FINAL_LIMIT,
+        );
+        final_front.sort_by(|a, b| {
+            a.estimate.cost.cmp(&b.estimate.cost).then_with(|| {
+                estimate_metric_reduction(&b.estimate, metric)
+                    .total_cmp(&estimate_metric_reduction(&a.estimate, metric))
+            })
+        });
 
-    send_progress(sender, cancel, 0.98, "결과 정렬")?;
-    estimate_reduction_with_sample_count(
-        &final_request,
-        model_store,
-        reference_data,
-        DEFAULT_SAMPLE_COUNT,
-    )
+        let mut final_request = request.clone();
+        final_request.metric = metric;
+        final_request.options = final_front
+            .into_iter()
+            .enumerate()
+            .map(|(index, candidate)| {
+                let mut option = candidate.option;
+                option.id = 100_000 + index as u64;
+                option.label = format!("Pareto {}: {}", index + 1, option.spec.summary_label());
+                option
+            })
+            .collect::<Vec<_>>();
+
+        let result = estimate_reduction_with_sample_count(
+            &final_request,
+            model_store,
+            reference_data,
+            DEFAULT_SAMPLE_COUNT,
+        )?;
+        results.push(ParetoMetricResult { metric, result });
+    }
+
+    Ok(ParetoResultSet { results })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -736,7 +758,7 @@ fn evaluate_pareto_stage(
             model_store,
             reference_data,
         )?;
-        if estimate_metric_reduction(&estimate, request.metric) > 0.0 && estimate.cost > 0 {
+        if has_positive_metric_reduction(&estimate) && estimate.cost > 0 {
             scored.push(ScoredCandidate { option, estimate });
         }
     }
@@ -821,6 +843,17 @@ fn pareto_front(
     front
 }
 
+fn combined_limited_front(candidates: &[ScoredCandidate], limit: usize) -> Vec<ScoredCandidate> {
+    let mut combined = BTreeMap::new();
+    for metric in EnergyMetric::ALL {
+        for candidate in limit_front(pareto_front(candidates.to_vec(), metric), limit) {
+            combined.entry(candidate.option.id).or_insert(candidate);
+        }
+    }
+
+    combined.into_values().collect()
+}
+
 fn limit_front(front: Vec<ScoredCandidate>, limit: usize) -> Vec<ScoredCandidate> {
     if front.len() <= limit || limit == 0 {
         return front;
@@ -871,6 +904,12 @@ fn estimate_option(
 fn estimate_metric_reduction(estimate: &OptionEstimate, metric: EnergyMetric) -> f64 {
     let factor = metric.factor();
     factor.per_area_value(estimate.reduction.mean.gas, estimate.reduction.mean.elec)
+}
+
+fn has_positive_metric_reduction(estimate: &OptionEstimate) -> bool {
+    EnergyMetric::ALL
+        .iter()
+        .any(|metric| estimate_metric_reduction(estimate, *metric) > 0.0)
 }
 
 fn round1(value: f64) -> f64 {

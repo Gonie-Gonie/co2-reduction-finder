@@ -63,6 +63,7 @@ pub struct MetricFactor {
     pub gas: f64,
     pub elec: f64,
     pub unit: &'static str,
+    #[allow(dead_code)]
     pub per_area_unit: &'static str,
 }
 
