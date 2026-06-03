@@ -16,7 +16,8 @@
 - Emit compact model artifacts for Rust inference. Done: `assets/models.c2m`.
 - Include compact reference metadata. Done: `assets/info.csv` and `assets/Umap.csv`.
 - Add parity tests against Keras predictions for fixed inputs.
-- Resolve current H5/reference-code shape mismatch: H5 is 24-input/1-output, Python path says 25-input/2-output.
+- Confirm corrected H5/reference-code shape. Done: corrected H5 files are 25-input/2-output.
+- Confirm model-pair split logic follows Python `get_coeff()`. Done in embedded model store tests.
 
 ## Milestone 2: Rust Calculation Engine
 

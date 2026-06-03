@@ -86,6 +86,32 @@ impl EmbeddedModelStore {
     pub fn get(&self, name: &str) -> Option<&MlpModel> {
         self.models.get(name)
     }
+
+    pub fn predict_pair_split(
+        &self,
+        base_type: &str,
+        model1_weight: f64,
+        inputs: &[Vec<f32>],
+    ) -> Result<Vec<Vec<f32>>, String> {
+        let model1_name = format!("{base_type}_1");
+        let model2_name = format!("{base_type}_2");
+        let model1 = self
+            .get(&model1_name)
+            .ok_or_else(|| format!("model not found: {model1_name}"))?;
+        let model2 = self
+            .get(&model2_name)
+            .ok_or_else(|| format!("model not found: {model2_name}"))?;
+
+        if !(0.0..=1.0).contains(&model1_weight) {
+            return Err(format!("invalid model1 weight: {model1_weight}"));
+        }
+
+        let split_index = (model1_weight * inputs.len() as f64) as usize;
+        let mut outputs = Vec::with_capacity(inputs.len());
+        outputs.extend(model1.predict_batch_parallel(&inputs[..split_index])?);
+        outputs.extend(model2.predict_batch_parallel(&inputs[split_index..])?);
+        Ok(outputs)
+    }
 }
 
 struct Reader<'a> {
@@ -155,13 +181,45 @@ impl<'a> Reader<'a> {
 #[cfg(test)]
 mod tests {
     use super::EmbeddedModelStore;
+    use crate::domain::ReferenceData;
 
     #[test]
     fn loads_embedded_models() {
         let store = EmbeddedModelStore::load().expect("embedded model asset should load");
 
-        assert_eq!(store.len(), 42);
-        assert!(store.total_params() > 8_000_000);
-        assert!(store.get("Office_1").is_some());
+        assert_eq!(store.len(), 40);
+        assert!(store.total_params() > 5_000_000);
+        let office = store.get("Office_1").expect("Office_1 should exist");
+        assert_eq!(office.input_dim, 25);
+        assert_eq!(office.output_dim, 2);
+    }
+
+    #[test]
+    fn pair_split_matches_python_get_coeff_model_split() {
+        let store = EmbeddedModelStore::load().expect("embedded model asset should load");
+        let inputs = vec![vec![0.0; 25]; 10];
+        let reference_data = ReferenceData::load().expect("reference metadata should load");
+        let weight = reference_data
+            .model1_weight_for_base("Office")
+            .expect("Office pair weight should load");
+        let split_index = (weight * inputs.len() as f64) as usize;
+
+        let mixed = store
+            .predict_pair_split("Office", weight, &inputs)
+            .expect("pair split prediction should succeed");
+        let expected_first = store
+            .get("Office_1")
+            .expect("Office_1 should exist")
+            .predict(&inputs[0])
+            .expect("Office_1 prediction should succeed");
+        let expected_after_split = store
+            .get("Office_2")
+            .expect("Office_2 should exist")
+            .predict(&inputs[split_index])
+            .expect("Office_2 prediction should succeed");
+
+        assert_eq!(mixed.len(), inputs.len());
+        assert_eq!(mixed[0], expected_first);
+        assert_eq!(mixed[split_index], expected_after_split);
     }
 }

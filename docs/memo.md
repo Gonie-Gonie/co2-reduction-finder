@@ -61,10 +61,11 @@ Last updated: 2026-06-03
 
 ## Model Asset Notes
 
-- The 42 source H5 files are about 101MB total.
-- Extracted inference-only f32 weights are about 31.5MB.
-- The current extracted models are all 24-input, 1-output Dense MLPs.
-- This differs from the reference Python training path that says 25 inputs and 2 outputs. Treat this as a version mismatch to resolve before trusting final energy calculations.
+- The corrected source H5 files live in `.reference/data-02 annmodels`.
+- The corrected source set has 40 H5 files, matching the 40 rows in `info.csv`.
+- Extracted inference-only f32 weights are about 22.2MB.
+- The corrected extracted models are all 25-input, 2-output Dense MLPs.
+- Building-type predictions must use the Python `get_coeff()` split strategy: `{Type}_1` predicts the first `int(weight * sample_count)` samples, and `{Type}_2` predicts the remaining samples. This is not a weighted average of prediction values.
 - Full converted ECM lookup tables are not included because they are about 57MB each. They should be generated in Rust from compact rules/data.
 
 ## Official References Checked

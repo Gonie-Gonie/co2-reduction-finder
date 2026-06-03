@@ -1,2044 +1,1457 @@
 {
   "format": "C2M1",
   "binary": "models.c2m",
-  "model_count": 42,
-  "total_params": 8254508,
-  "total_f32_bytes": 33018032,
+  "model_count": 40,
+  "total_params": 5815048,
+  "total_f32_bytes": 23260192,
   "models": [
     {
       "name": "ClassA_1",
       "source": "ClassA_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 7,
-      "params": 459301,
-      "layers": [
-        {
-          "name": "dense_274",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
-        },
-        {
-          "name": "dense_275",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_276",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_277",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_278",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_279",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_280",
-          "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
-        }
-      ]
-    },
-    {
-      "name": "ClassA_2",
-      "source": "ClassA_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 276875,
-      "layers": [
-        {
-          "name": "dense_614",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 299,
-          "params": 7475
-        },
-        {
-          "name": "dense_615",
-          "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
-        },
-        {
-          "name": "dense_616",
-          "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
-        },
-        {
-          "name": "dense_617",
-          "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
-        },
-        {
-          "name": "dense_618",
-          "activation": "linear",
-          "input_dim": 299,
-          "output_dim": 1,
-          "params": 300
-        }
-      ]
-    },
-    {
-      "name": "Firestation_1",
-      "source": "Firestation_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 7,
-      "params": 60563,
-      "layers": [
-        {
-          "name": "dense_342",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 107,
-          "params": 2675
-        },
-        {
-          "name": "dense_343",
-          "activation": "elu",
-          "input_dim": 107,
-          "output_dim": 107,
-          "params": 11556
-        },
-        {
-          "name": "dense_344",
-          "activation": "elu",
-          "input_dim": 107,
-          "output_dim": 107,
-          "params": 11556
-        },
-        {
-          "name": "dense_345",
-          "activation": "elu",
-          "input_dim": 107,
-          "output_dim": 107,
-          "params": 11556
-        },
-        {
-          "name": "dense_346",
-          "activation": "elu",
-          "input_dim": 107,
-          "output_dim": 107,
-          "params": 11556
-        },
-        {
-          "name": "dense_347",
-          "activation": "elu",
-          "input_dim": 107,
-          "output_dim": 107,
-          "params": 11556
-        },
-        {
-          "name": "dense_348",
-          "activation": "linear",
-          "input_dim": 107,
-          "output_dim": 1,
-          "params": 108
-        }
-      ]
-    },
-    {
-      "name": "Firestation_2",
-      "source": "Firestation_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 8,
-      "params": 122081,
-      "layers": [
-        {
-          "name": "dense_273",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 140,
-          "params": 3500
-        },
-        {
-          "name": "dense_274",
-          "activation": "elu",
-          "input_dim": 140,
-          "output_dim": 140,
-          "params": 19740
-        },
-        {
-          "name": "dense_275",
-          "activation": "elu",
-          "input_dim": 140,
-          "output_dim": 140,
-          "params": 19740
-        },
-        {
-          "name": "dense_276",
-          "activation": "elu",
-          "input_dim": 140,
-          "output_dim": 140,
-          "params": 19740
-        },
-        {
-          "name": "dense_277",
-          "activation": "elu",
-          "input_dim": 140,
-          "output_dim": 140,
-          "params": 19740
-        },
-        {
-          "name": "dense_278",
-          "activation": "elu",
-          "input_dim": 140,
-          "output_dim": 140,
-          "params": 19740
-        },
-        {
-          "name": "dense_279",
-          "activation": "elu",
-          "input_dim": 140,
-          "output_dim": 140,
-          "params": 19740
-        },
-        {
-          "name": "dense_280",
-          "activation": "linear",
-          "input_dim": 140,
-          "output_dim": 1,
-          "params": 141
-        }
-      ]
-    },
-    {
-      "name": "Gallery_1",
-      "source": "Gallery_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 369001,
-      "layers": [
-        {
-          "name": "dense_543",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
-        },
-        {
-          "name": "dense_544",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_545",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_546",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_547",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_548",
-          "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
-        }
-      ]
-    },
-    {
-      "name": "Gallery_2",
-      "source": "Gallery_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 4,
-      "params": 145703,
-      "layers": [
-        {
-          "name": "dense_531",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 263,
-          "params": 6575
-        },
-        {
-          "name": "dense_532",
-          "activation": "elu",
-          "input_dim": 263,
-          "output_dim": 263,
-          "params": 69432
-        },
-        {
-          "name": "dense_533",
-          "activation": "elu",
-          "input_dim": 263,
-          "output_dim": 263,
-          "params": 69432
-        },
-        {
-          "name": "dense_534",
-          "activation": "linear",
-          "input_dim": 263,
-          "output_dim": 1,
-          "params": 264
-        }
-      ]
-    },
-    {
-      "name": "Gymnasium_1",
-      "source": "Gymnasium_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 8,
-      "params": 96225,
-      "layers": [
-        {
-          "name": "dense_604",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 124,
-          "params": 3100
-        },
-        {
-          "name": "dense_605",
-          "activation": "elu",
-          "input_dim": 124,
-          "output_dim": 124,
-          "params": 15500
-        },
-        {
-          "name": "dense_606",
-          "activation": "elu",
-          "input_dim": 124,
-          "output_dim": 124,
-          "params": 15500
-        },
-        {
-          "name": "dense_607",
-          "activation": "elu",
-          "input_dim": 124,
-          "output_dim": 124,
-          "params": 15500
-        },
-        {
-          "name": "dense_608",
-          "activation": "elu",
-          "input_dim": 124,
-          "output_dim": 124,
-          "params": 15500
-        },
-        {
-          "name": "dense_609",
-          "activation": "elu",
-          "input_dim": 124,
-          "output_dim": 124,
-          "params": 15500
-        },
-        {
-          "name": "dense_610",
-          "activation": "elu",
-          "input_dim": 124,
-          "output_dim": 124,
-          "params": 15500
-        },
-        {
-          "name": "dense_611",
-          "activation": "linear",
-          "input_dim": 124,
-          "output_dim": 1,
-          "params": 125
-        }
-      ]
-    },
-    {
-      "name": "Gymnasium_2",
-      "source": "Gymnasium_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 253683,
-      "layers": [
-        {
-          "name": "dense_575",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 286,
-          "params": 7150
-        },
-        {
-          "name": "dense_576",
-          "activation": "elu",
-          "input_dim": 286,
-          "output_dim": 286,
-          "params": 82082
-        },
-        {
-          "name": "dense_577",
-          "activation": "elu",
-          "input_dim": 286,
-          "output_dim": 286,
-          "params": 82082
-        },
-        {
-          "name": "dense_578",
-          "activation": "elu",
-          "input_dim": 286,
-          "output_dim": 286,
-          "params": 82082
-        },
-        {
-          "name": "dense_579",
-          "activation": "linear",
-          "input_dim": 286,
-          "output_dim": 1,
-          "params": 287
-        }
-      ]
-    },
-    {
-      "name": "Hospital_1",
-      "source": "Hospital_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 96977,
-      "layers": [
-        {
-          "name": "dense_529",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 152,
-          "params": 3800
-        },
-        {
-          "name": "dense_530",
-          "activation": "elu",
-          "input_dim": 152,
-          "output_dim": 152,
-          "params": 23256
-        },
-        {
-          "name": "dense_531",
-          "activation": "elu",
-          "input_dim": 152,
-          "output_dim": 152,
-          "params": 23256
-        },
-        {
-          "name": "dense_532",
-          "activation": "elu",
-          "input_dim": 152,
-          "output_dim": 152,
-          "params": 23256
-        },
-        {
-          "name": "dense_533",
-          "activation": "elu",
-          "input_dim": 152,
-          "output_dim": 152,
-          "params": 23256
-        },
-        {
-          "name": "dense_534",
-          "activation": "linear",
-          "input_dim": 152,
-          "output_dim": 1,
-          "params": 153
-        }
-      ]
-    },
-    {
-      "name": "Hospital_2",
-      "source": "Hospital_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 199365,
-      "layers": [
-        {
-          "name": "dense_466",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 253,
-          "params": 6325
-        },
-        {
-          "name": "dense_467",
-          "activation": "elu",
-          "input_dim": 253,
-          "output_dim": 253,
-          "params": 64262
-        },
-        {
-          "name": "dense_468",
-          "activation": "elu",
-          "input_dim": 253,
-          "output_dim": 253,
-          "params": 64262
-        },
-        {
-          "name": "dense_469",
-          "activation": "elu",
-          "input_dim": 253,
-          "output_dim": 253,
-          "params": 64262
-        },
-        {
-          "name": "dense_470",
-          "activation": "linear",
-          "input_dim": 253,
-          "output_dim": 1,
-          "params": 254
-        }
-      ]
-    },
-    {
-      "name": "Kindergarten_1",
-      "source": "Kindergarten_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 157025,
-      "layers": [
-        {
-          "name": "dense_250",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 224,
-          "params": 5600
-        },
-        {
-          "name": "dense_251",
-          "activation": "elu",
-          "input_dim": 224,
-          "output_dim": 224,
-          "params": 50400
-        },
-        {
-          "name": "dense_252",
-          "activation": "elu",
-          "input_dim": 224,
-          "output_dim": 224,
-          "params": 50400
-        },
-        {
-          "name": "dense_253",
-          "activation": "elu",
-          "input_dim": 224,
-          "output_dim": 224,
-          "params": 50400
-        },
-        {
-          "name": "dense_254",
-          "activation": "linear",
-          "input_dim": 224,
-          "output_dim": 1,
-          "params": 225
-        }
-      ]
-    },
-    {
-      "name": "Kindergarten_2",
-      "source": "Kindergarten_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 4,
-      "params": 107551,
-      "layers": [
-        {
-          "name": "dense_279",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 225,
-          "params": 5625
-        },
-        {
-          "name": "dense_280",
-          "activation": "elu",
-          "input_dim": 225,
-          "output_dim": 225,
-          "params": 50850
-        },
-        {
-          "name": "dense_281",
-          "activation": "elu",
-          "input_dim": 225,
-          "output_dim": 225,
-          "params": 50850
-        },
-        {
-          "name": "dense_282",
-          "activation": "linear",
-          "input_dim": 225,
-          "output_dim": 1,
-          "params": 226
-        }
-      ]
-    },
-    {
-      "name": "Lab_1",
-      "source": "Lab_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 90847,
-      "layers": [
-        {
-          "name": "dense_273",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 147,
-          "params": 3675
-        },
-        {
-          "name": "dense_274",
-          "activation": "elu",
-          "input_dim": 147,
-          "output_dim": 147,
-          "params": 21756
-        },
-        {
-          "name": "dense_275",
-          "activation": "elu",
-          "input_dim": 147,
-          "output_dim": 147,
-          "params": 21756
-        },
-        {
-          "name": "dense_276",
-          "activation": "elu",
-          "input_dim": 147,
-          "output_dim": 147,
-          "params": 21756
-        },
-        {
-          "name": "dense_277",
-          "activation": "elu",
-          "input_dim": 147,
-          "output_dim": 147,
-          "params": 21756
-        },
-        {
-          "name": "dense_278",
-          "activation": "linear",
-          "input_dim": 147,
-          "output_dim": 1,
-          "params": 148
-        }
-      ]
-    },
-    {
-      "name": "Lab_2",
-      "source": "Lab_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 4,
-      "params": 188401,
-      "layers": [
-        {
-          "name": "dense_287",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
-        },
-        {
-          "name": "dense_288",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_289",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_290",
-          "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
-        }
-      ]
-    },
-    {
-      "name": "Library_1",
-      "source": "Library_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 211085,
-      "layers": [
-        {
-          "name": "dense_612",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 226,
-          "params": 5650
-        },
-        {
-          "name": "dense_613",
-          "activation": "elu",
-          "input_dim": 226,
-          "output_dim": 226,
-          "params": 51302
-        },
-        {
-          "name": "dense_614",
-          "activation": "elu",
-          "input_dim": 226,
-          "output_dim": 226,
-          "params": 51302
-        },
-        {
-          "name": "dense_615",
-          "activation": "elu",
-          "input_dim": 226,
-          "output_dim": 226,
-          "params": 51302
-        },
-        {
-          "name": "dense_616",
-          "activation": "elu",
-          "input_dim": 226,
-          "output_dim": 226,
-          "params": 51302
-        },
-        {
-          "name": "dense_617",
-          "activation": "linear",
-          "input_dim": 226,
-          "output_dim": 1,
-          "params": 227
-        }
-      ]
-    },
-    {
-      "name": "Library_2",
-      "source": "Library_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 267835,
-      "layers": [
-        {
-          "name": "dense_502",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 294,
-          "params": 7350
-        },
-        {
-          "name": "dense_503",
-          "activation": "elu",
-          "input_dim": 294,
-          "output_dim": 294,
-          "params": 86730
-        },
-        {
-          "name": "dense_504",
-          "activation": "elu",
-          "input_dim": 294,
-          "output_dim": 294,
-          "params": 86730
-        },
-        {
-          "name": "dense_505",
-          "activation": "elu",
-          "input_dim": 294,
-          "output_dim": 294,
-          "params": 86730
-        },
-        {
-          "name": "dense_506",
-          "activation": "linear",
-          "input_dim": 294,
-          "output_dim": 1,
-          "params": 295
-        }
-      ]
-    },
-    {
-      "name": "MultiHousing_1",
-      "source": "MultiHousing_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 4,
-      "params": 28703,
-      "layers": [
-        {
-          "name": "dense_287",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 113,
-          "params": 2825
-        },
-        {
-          "name": "dense_288",
-          "activation": "elu",
-          "input_dim": 113,
-          "output_dim": 113,
-          "params": 12882
-        },
-        {
-          "name": "dense_289",
-          "activation": "elu",
-          "input_dim": 113,
-          "output_dim": 113,
-          "params": 12882
-        },
-        {
-          "name": "dense_290",
-          "activation": "linear",
-          "input_dim": 113,
-          "output_dim": 1,
-          "params": 114
-        }
-      ]
-    },
-    {
-      "name": "MultiHousing_2",
-      "source": "MultiHousing_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
+      "input_dim": 25,
+      "output_dim": 2,
       "layer_count": 3,
-      "params": 66125,
+      "params": 66614,
       "layers": [
         {
-          "name": "dense_267",
+          "name": "dense_102",
           "activation": "elu",
-          "input_dim": 24,
+          "input_dim": 25,
           "output_dim": 244,
-          "params": 6100
+          "params": 6344
         },
         {
-          "name": "dense_268",
+          "name": "dense_103",
           "activation": "elu",
           "input_dim": 244,
           "output_dim": 244,
           "params": 59780
         },
         {
-          "name": "dense_269",
+          "name": "dense_104",
           "activation": "linear",
           "input_dim": 244,
-          "output_dim": 1,
-          "params": 245
+          "output_dim": 2,
+          "params": 490
+        }
+      ]
+    },
+    {
+      "name": "ClassA_2",
+      "source": "ClassA_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 9,
+      "params": 208252,
+      "layers": [
+        {
+          "name": "dense_126",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 170,
+          "params": 4420
+        },
+        {
+          "name": "dense_127",
+          "activation": "elu",
+          "input_dim": 170,
+          "output_dim": 170,
+          "params": 29070
+        },
+        {
+          "name": "dense_128",
+          "activation": "elu",
+          "input_dim": 170,
+          "output_dim": 170,
+          "params": 29070
+        },
+        {
+          "name": "dense_129",
+          "activation": "elu",
+          "input_dim": 170,
+          "output_dim": 170,
+          "params": 29070
+        },
+        {
+          "name": "dense_130",
+          "activation": "elu",
+          "input_dim": 170,
+          "output_dim": 170,
+          "params": 29070
+        },
+        {
+          "name": "dense_131",
+          "activation": "elu",
+          "input_dim": 170,
+          "output_dim": 170,
+          "params": 29070
+        },
+        {
+          "name": "dense_132",
+          "activation": "elu",
+          "input_dim": 170,
+          "output_dim": 170,
+          "params": 29070
+        },
+        {
+          "name": "dense_133",
+          "activation": "elu",
+          "input_dim": 170,
+          "output_dim": 170,
+          "params": 29070
+        },
+        {
+          "name": "dense_134",
+          "activation": "linear",
+          "input_dim": 170,
+          "output_dim": 2,
+          "params": 342
+        }
+      ]
+    },
+    {
+      "name": "Firestation_1",
+      "source": "Firestation_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 121244,
+      "layers": [
+        {
+          "name": "dense_252",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 334,
+          "params": 8684
+        },
+        {
+          "name": "dense_253",
+          "activation": "elu",
+          "input_dim": 334,
+          "output_dim": 334,
+          "params": 111890
+        },
+        {
+          "name": "dense_254",
+          "activation": "linear",
+          "input_dim": 334,
+          "output_dim": 2,
+          "params": 670
+        }
+      ]
+    },
+    {
+      "name": "Firestation_2",
+      "source": "Firestation_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 119450,
+      "layers": [
+        {
+          "name": "dense_399",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 237,
+          "params": 6162
+        },
+        {
+          "name": "dense_400",
+          "activation": "elu",
+          "input_dim": 237,
+          "output_dim": 237,
+          "params": 56406
+        },
+        {
+          "name": "dense_401",
+          "activation": "elu",
+          "input_dim": 237,
+          "output_dim": 237,
+          "params": 56406
+        },
+        {
+          "name": "dense_402",
+          "activation": "linear",
+          "input_dim": 237,
+          "output_dim": 2,
+          "params": 476
+        }
+      ]
+    },
+    {
+      "name": "Gallery_1",
+      "source": "Gallery_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 23002,
+      "layers": [
+        {
+          "name": "dense_410",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 100,
+          "params": 2600
+        },
+        {
+          "name": "dense_411",
+          "activation": "elu",
+          "input_dim": 100,
+          "output_dim": 100,
+          "params": 10100
+        },
+        {
+          "name": "dense_412",
+          "activation": "elu",
+          "input_dim": 100,
+          "output_dim": 100,
+          "params": 10100
+        },
+        {
+          "name": "dense_413",
+          "activation": "linear",
+          "input_dim": 100,
+          "output_dim": 2,
+          "params": 202
+        }
+      ]
+    },
+    {
+      "name": "Gallery_2",
+      "source": "Gallery_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 117098,
+      "layers": [
+        {
+          "name": "dense_574",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 328,
+          "params": 8528
+        },
+        {
+          "name": "dense_575",
+          "activation": "elu",
+          "input_dim": 328,
+          "output_dim": 328,
+          "params": 107912
+        },
+        {
+          "name": "dense_576",
+          "activation": "linear",
+          "input_dim": 328,
+          "output_dim": 2,
+          "params": 658
+        }
+      ]
+    },
+    {
+      "name": "Gymnasium_1",
+      "source": "Gymnasium_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 80732,
+      "layers": [
+        {
+          "name": "dense_593",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 270,
+          "params": 7020
+        },
+        {
+          "name": "dense_594",
+          "activation": "elu",
+          "input_dim": 270,
+          "output_dim": 270,
+          "params": 73170
+        },
+        {
+          "name": "dense_595",
+          "activation": "linear",
+          "input_dim": 270,
+          "output_dim": 2,
+          "params": 542
+        }
+      ]
+    },
+    {
+      "name": "Gymnasium_2",
+      "source": "Gymnasium_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 2,
+      "params": 11202,
+      "layers": [
+        {
+          "name": "dense_722",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 400,
+          "params": 10400
+        },
+        {
+          "name": "dense_723",
+          "activation": "linear",
+          "input_dim": 400,
+          "output_dim": 2,
+          "params": 802
+        }
+      ]
+    },
+    {
+      "name": "Hospital_1",
+      "source": "Hospital_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 5,
+      "params": 84762,
+      "layers": [
+        {
+          "name": "dense_748",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 163,
+          "params": 4238
+        },
+        {
+          "name": "dense_749",
+          "activation": "elu",
+          "input_dim": 163,
+          "output_dim": 163,
+          "params": 26732
+        },
+        {
+          "name": "dense_750",
+          "activation": "elu",
+          "input_dim": 163,
+          "output_dim": 163,
+          "params": 26732
+        },
+        {
+          "name": "dense_751",
+          "activation": "elu",
+          "input_dim": 163,
+          "output_dim": 163,
+          "params": 26732
+        },
+        {
+          "name": "dense_752",
+          "activation": "linear",
+          "input_dim": 163,
+          "output_dim": 2,
+          "params": 328
+        }
+      ]
+    },
+    {
+      "name": "Hospital_2",
+      "source": "Hospital_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 2,
+      "params": 9298,
+      "layers": [
+        {
+          "name": "dense_855",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 332,
+          "params": 8632
+        },
+        {
+          "name": "dense_856",
+          "activation": "linear",
+          "input_dim": 332,
+          "output_dim": 2,
+          "params": 666
+        }
+      ]
+    },
+    {
+      "name": "Kindergarten_1",
+      "source": "Kindergarten_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 129032,
+      "layers": [
+        {
+          "name": "dense_928",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 345,
+          "params": 8970
+        },
+        {
+          "name": "dense_929",
+          "activation": "elu",
+          "input_dim": 345,
+          "output_dim": 345,
+          "params": 119370
+        },
+        {
+          "name": "dense_930",
+          "activation": "linear",
+          "input_dim": 345,
+          "output_dim": 2,
+          "params": 692
+        }
+      ]
+    },
+    {
+      "name": "Kindergarten_2",
+      "source": "Kindergarten_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 96824,
+      "layers": [
+        {
+          "name": "dense_993",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 297,
+          "params": 7722
+        },
+        {
+          "name": "dense_994",
+          "activation": "elu",
+          "input_dim": 297,
+          "output_dim": 297,
+          "params": 88506
+        },
+        {
+          "name": "dense_995",
+          "activation": "linear",
+          "input_dim": 297,
+          "output_dim": 2,
+          "params": 596
+        }
+      ]
+    },
+    {
+      "name": "Lab_1",
+      "source": "Lab_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 118472,
+      "layers": [
+        {
+          "name": "dense_1088",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 330,
+          "params": 8580
+        },
+        {
+          "name": "dense_1089",
+          "activation": "elu",
+          "input_dim": 330,
+          "output_dim": 330,
+          "params": 109230
+        },
+        {
+          "name": "dense_1090",
+          "activation": "linear",
+          "input_dim": 330,
+          "output_dim": 2,
+          "params": 662
+        }
+      ]
+    },
+    {
+      "name": "Lab_2",
+      "source": "Lab_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 113024,
+      "layers": [
+        {
+          "name": "dense_1148",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 322,
+          "params": 8372
+        },
+        {
+          "name": "dense_1149",
+          "activation": "elu",
+          "input_dim": 322,
+          "output_dim": 322,
+          "params": 104006
+        },
+        {
+          "name": "dense_1150",
+          "activation": "linear",
+          "input_dim": 322,
+          "output_dim": 2,
+          "params": 646
+        }
+      ]
+    },
+    {
+      "name": "Library_1",
+      "source": "Library_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 6,
+      "params": 443494,
+      "layers": [
+        {
+          "name": "dense_1314",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 329,
+          "params": 8554
+        },
+        {
+          "name": "dense_1315",
+          "activation": "elu",
+          "input_dim": 329,
+          "output_dim": 329,
+          "params": 108570
+        },
+        {
+          "name": "dense_1316",
+          "activation": "elu",
+          "input_dim": 329,
+          "output_dim": 329,
+          "params": 108570
+        },
+        {
+          "name": "dense_1317",
+          "activation": "elu",
+          "input_dim": 329,
+          "output_dim": 329,
+          "params": 108570
+        },
+        {
+          "name": "dense_1318",
+          "activation": "elu",
+          "input_dim": 329,
+          "output_dim": 329,
+          "params": 108570
+        },
+        {
+          "name": "dense_1319",
+          "activation": "linear",
+          "input_dim": 329,
+          "output_dim": 2,
+          "params": 660
+        }
+      ]
+    },
+    {
+      "name": "Library_2",
+      "source": "Library_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 84764,
+      "layers": [
+        {
+          "name": "dense_1235",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 277,
+          "params": 7202
+        },
+        {
+          "name": "dense_1236",
+          "activation": "elu",
+          "input_dim": 277,
+          "output_dim": 277,
+          "params": 77006
+        },
+        {
+          "name": "dense_1237",
+          "activation": "linear",
+          "input_dim": 277,
+          "output_dim": 2,
+          "params": 556
+        }
+      ]
+    },
+    {
+      "name": "MultiHousing_1",
+      "source": "MultiHousing_1.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 39370,
+      "layers": [
+        {
+          "name": "dense_1393",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 133,
+          "params": 3458
+        },
+        {
+          "name": "dense_1394",
+          "activation": "elu",
+          "input_dim": 133,
+          "output_dim": 133,
+          "params": 17822
+        },
+        {
+          "name": "dense_1395",
+          "activation": "elu",
+          "input_dim": 133,
+          "output_dim": 133,
+          "params": 17822
+        },
+        {
+          "name": "dense_1396",
+          "activation": "linear",
+          "input_dim": 133,
+          "output_dim": 2,
+          "params": 268
+        }
+      ]
+    },
+    {
+      "name": "MultiHousing_2",
+      "source": "MultiHousing_2.h5",
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 83602,
+      "layers": [
+        {
+          "name": "dense_1524",
+          "activation": "elu",
+          "input_dim": 25,
+          "output_dim": 275,
+          "params": 7150
+        },
+        {
+          "name": "dense_1525",
+          "activation": "elu",
+          "input_dim": 275,
+          "output_dim": 275,
+          "params": 75900
+        },
+        {
+          "name": "dense_1526",
+          "activation": "linear",
+          "input_dim": 275,
+          "output_dim": 2,
+          "params": 552
         }
       ]
     },
     {
       "name": "Office_1",
       "source": "Office_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 111485,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 49298,
       "layers": [
         {
-          "name": "dense_1008",
+          "name": "dense_1563",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 188,
-          "params": 4700
+          "input_dim": 25,
+          "output_dim": 208,
+          "params": 5408
         },
         {
-          "name": "dense_1009",
+          "name": "dense_1564",
           "activation": "elu",
-          "input_dim": 188,
-          "output_dim": 188,
-          "params": 35532
+          "input_dim": 208,
+          "output_dim": 208,
+          "params": 43472
         },
         {
-          "name": "dense_1010",
-          "activation": "elu",
-          "input_dim": 188,
-          "output_dim": 188,
-          "params": 35532
-        },
-        {
-          "name": "dense_1011",
-          "activation": "elu",
-          "input_dim": 188,
-          "output_dim": 188,
-          "params": 35532
-        },
-        {
-          "name": "dense_1012",
+          "name": "dense_1565",
           "activation": "linear",
-          "input_dim": 188,
-          "output_dim": 1,
-          "params": 189
+          "input_dim": 208,
+          "output_dim": 2,
+          "params": 418
         }
       ]
     },
     {
       "name": "Office_2",
       "source": "Office_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 369001,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 39370,
       "layers": [
         {
-          "name": "dense_1228",
+          "name": "dense_1691",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
+          "input_dim": 25,
+          "output_dim": 133,
+          "params": 3458
         },
         {
-          "name": "dense_1229",
+          "name": "dense_1692",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 133,
+          "output_dim": 133,
+          "params": 17822
         },
         {
-          "name": "dense_1230",
+          "name": "dense_1693",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 133,
+          "output_dim": 133,
+          "params": 17822
         },
         {
-          "name": "dense_1231",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_1232",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_1233",
+          "name": "dense_1694",
           "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
+          "input_dim": 133,
+          "output_dim": 2,
+          "params": 268
         }
       ]
     },
     {
       "name": "PoliceOffice_1",
       "source": "PoliceOffice_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 7,
-      "params": 129719,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 112702,
       "layers": [
         {
-          "name": "dense_260",
+          "name": "dense_1719",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 158,
-          "params": 3950
+          "input_dim": 25,
+          "output_dim": 230,
+          "params": 5980
         },
         {
-          "name": "dense_261",
+          "name": "dense_1720",
           "activation": "elu",
-          "input_dim": 158,
-          "output_dim": 158,
-          "params": 25122
+          "input_dim": 230,
+          "output_dim": 230,
+          "params": 53130
         },
         {
-          "name": "dense_262",
+          "name": "dense_1721",
           "activation": "elu",
-          "input_dim": 158,
-          "output_dim": 158,
-          "params": 25122
+          "input_dim": 230,
+          "output_dim": 230,
+          "params": 53130
         },
         {
-          "name": "dense_263",
-          "activation": "elu",
-          "input_dim": 158,
-          "output_dim": 158,
-          "params": 25122
-        },
-        {
-          "name": "dense_264",
-          "activation": "elu",
-          "input_dim": 158,
-          "output_dim": 158,
-          "params": 25122
-        },
-        {
-          "name": "dense_265",
-          "activation": "elu",
-          "input_dim": 158,
-          "output_dim": 158,
-          "params": 25122
-        },
-        {
-          "name": "dense_266",
+          "name": "dense_1722",
           "activation": "linear",
-          "input_dim": 158,
-          "output_dim": 1,
-          "params": 159
+          "input_dim": 230,
+          "output_dim": 2,
+          "params": 462
         }
       ]
     },
     {
       "name": "PoliceOffice_2",
       "source": "PoliceOffice_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 7,
-      "params": 409219,
-      "layers": [
-        {
-          "name": "dense_312",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 283,
-          "params": 7075
-        },
-        {
-          "name": "dense_313",
-          "activation": "elu",
-          "input_dim": 283,
-          "output_dim": 283,
-          "params": 80372
-        },
-        {
-          "name": "dense_314",
-          "activation": "elu",
-          "input_dim": 283,
-          "output_dim": 283,
-          "params": 80372
-        },
-        {
-          "name": "dense_315",
-          "activation": "elu",
-          "input_dim": 283,
-          "output_dim": 283,
-          "params": 80372
-        },
-        {
-          "name": "dense_316",
-          "activation": "elu",
-          "input_dim": 283,
-          "output_dim": 283,
-          "params": 80372
-        },
-        {
-          "name": "dense_317",
-          "activation": "elu",
-          "input_dim": 283,
-          "output_dim": 283,
-          "params": 80372
-        },
-        {
-          "name": "dense_318",
-          "activation": "linear",
-          "input_dim": 283,
-          "output_dim": 1,
-          "params": 284
-        }
-      ]
-    },
-    {
-      "name": "PoliceStation_1",
-      "source": "PoliceStation_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 3,
-      "params": 166691,
-      "layers": [
-        {
-          "name": "dense_3782",
-          "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 395,
-          "params": 9875
-        },
-        {
-          "name": "dense_3783",
-          "activation": "elu",
-          "input_dim": 395,
-          "output_dim": 395,
-          "params": 156420
-        },
-        {
-          "name": "dense_3784",
-          "activation": "linear",
-          "input_dim": 395,
-          "output_dim": 1,
-          "params": 396
-        }
-      ]
-    },
-    {
-      "name": "PoliceStation_2",
-      "source": "PoliceStation_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
+      "input_dim": 25,
+      "output_dim": 2,
       "layer_count": 4,
-      "params": 11455,
+      "params": 61490,
       "layers": [
         {
-          "name": "dense_4032",
+          "name": "dense_1883",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 69,
-          "params": 1725
+          "input_dim": 25,
+          "output_dim": 168,
+          "params": 4368
         },
         {
-          "name": "dense_4033",
+          "name": "dense_1884",
           "activation": "elu",
-          "input_dim": 69,
-          "output_dim": 69,
-          "params": 4830
+          "input_dim": 168,
+          "output_dim": 168,
+          "params": 28392
         },
         {
-          "name": "dense_4034",
+          "name": "dense_1885",
           "activation": "elu",
-          "input_dim": 69,
-          "output_dim": 69,
-          "params": 4830
+          "input_dim": 168,
+          "output_dim": 168,
+          "params": 28392
         },
         {
-          "name": "dense_4035",
+          "name": "dense_1886",
           "activation": "linear",
-          "input_dim": 69,
-          "output_dim": 1,
-          "params": 70
+          "input_dim": 168,
+          "output_dim": 2,
+          "params": 338
         }
       ]
     },
     {
       "name": "PostOffice_1",
       "source": "PostOffice_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 216745,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 89492,
       "layers": [
         {
-          "name": "dense_1041",
+          "name": "dense_1893",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 264,
-          "params": 6600
+          "input_dim": 25,
+          "output_dim": 285,
+          "params": 7410
         },
         {
-          "name": "dense_1042",
+          "name": "dense_1894",
           "activation": "elu",
-          "input_dim": 264,
-          "output_dim": 264,
-          "params": 69960
+          "input_dim": 285,
+          "output_dim": 285,
+          "params": 81510
         },
         {
-          "name": "dense_1043",
-          "activation": "elu",
-          "input_dim": 264,
-          "output_dim": 264,
-          "params": 69960
-        },
-        {
-          "name": "dense_1044",
-          "activation": "elu",
-          "input_dim": 264,
-          "output_dim": 264,
-          "params": 69960
-        },
-        {
-          "name": "dense_1045",
+          "name": "dense_1895",
           "activation": "linear",
-          "input_dim": 264,
-          "output_dim": 1,
-          "params": 265
+          "input_dim": 285,
+          "output_dim": 2,
+          "params": 572
         }
       ]
     },
     {
       "name": "PostOffice_2",
       "source": "PostOffice_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 278701,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 165202,
       "layers": [
         {
-          "name": "dense_1184",
+          "name": "dense_2069",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
+          "input_dim": 25,
+          "output_dim": 280,
+          "params": 7280
         },
         {
-          "name": "dense_1185",
+          "name": "dense_2070",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 280,
+          "output_dim": 280,
+          "params": 78680
         },
         {
-          "name": "dense_1186",
+          "name": "dense_2071",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 280,
+          "output_dim": 280,
+          "params": 78680
         },
         {
-          "name": "dense_1187",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_1188",
+          "name": "dense_2072",
           "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
+          "input_dim": 280,
+          "output_dim": 2,
+          "params": 562
         }
       ]
     },
     {
       "name": "School_1",
       "source": "School_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 231787,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 169948,
       "layers": [
         {
-          "name": "dense_1027",
+          "name": "dense_2044",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 237,
-          "params": 5925
+          "input_dim": 25,
+          "output_dim": 398,
+          "params": 10348
         },
         {
-          "name": "dense_1028",
+          "name": "dense_2045",
           "activation": "elu",
-          "input_dim": 237,
-          "output_dim": 237,
-          "params": 56406
+          "input_dim": 398,
+          "output_dim": 398,
+          "params": 158802
         },
         {
-          "name": "dense_1029",
-          "activation": "elu",
-          "input_dim": 237,
-          "output_dim": 237,
-          "params": 56406
-        },
-        {
-          "name": "dense_1030",
-          "activation": "elu",
-          "input_dim": 237,
-          "output_dim": 237,
-          "params": 56406
-        },
-        {
-          "name": "dense_1031",
-          "activation": "elu",
-          "input_dim": 237,
-          "output_dim": 237,
-          "params": 56406
-        },
-        {
-          "name": "dense_1032",
+          "name": "dense_2046",
           "activation": "linear",
-          "input_dim": 237,
-          "output_dim": 1,
-          "params": 238
+          "input_dim": 398,
+          "output_dim": 2,
+          "params": 798
         }
       ]
     },
     {
       "name": "School_2",
       "source": "School_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 147017,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 221002,
       "layers": [
         {
-          "name": "dense_971",
+          "name": "dense_2249",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 188,
-          "params": 4700
+          "input_dim": 25,
+          "output_dim": 325,
+          "params": 8450
         },
         {
-          "name": "dense_972",
+          "name": "dense_2250",
           "activation": "elu",
-          "input_dim": 188,
-          "output_dim": 188,
-          "params": 35532
+          "input_dim": 325,
+          "output_dim": 325,
+          "params": 105950
         },
         {
-          "name": "dense_973",
+          "name": "dense_2251",
           "activation": "elu",
-          "input_dim": 188,
-          "output_dim": 188,
-          "params": 35532
+          "input_dim": 325,
+          "output_dim": 325,
+          "params": 105950
         },
         {
-          "name": "dense_974",
-          "activation": "elu",
-          "input_dim": 188,
-          "output_dim": 188,
-          "params": 35532
-        },
-        {
-          "name": "dense_975",
-          "activation": "elu",
-          "input_dim": 188,
-          "output_dim": 188,
-          "params": 35532
-        },
-        {
-          "name": "dense_976",
+          "name": "dense_2252",
           "activation": "linear",
-          "input_dim": 188,
-          "output_dim": 1,
-          "params": 189
+          "input_dim": 325,
+          "output_dim": 2,
+          "params": 652
         }
       ]
     },
     {
       "name": "SingleHousing_1",
       "source": "SingleHousing_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 7,
-      "params": 456275,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 182902,
       "layers": [
         {
-          "name": "dense_263",
+          "name": "dense_2207",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 299,
-          "params": 7475
+          "input_dim": 25,
+          "output_dim": 295,
+          "params": 7670
         },
         {
-          "name": "dense_264",
+          "name": "dense_2208",
           "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
+          "input_dim": 295,
+          "output_dim": 295,
+          "params": 87320
         },
         {
-          "name": "dense_265",
+          "name": "dense_2209",
           "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
+          "input_dim": 295,
+          "output_dim": 295,
+          "params": 87320
         },
         {
-          "name": "dense_266",
-          "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
-        },
-        {
-          "name": "dense_267",
-          "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
-        },
-        {
-          "name": "dense_268",
-          "activation": "elu",
-          "input_dim": 299,
-          "output_dim": 299,
-          "params": 89700
-        },
-        {
-          "name": "dense_269",
+          "name": "dense_2210",
           "activation": "linear",
-          "input_dim": 299,
-          "output_dim": 1,
-          "params": 300
+          "input_dim": 295,
+          "output_dim": 2,
+          "params": 592
         }
       ]
     },
     {
       "name": "SingleHousing_2",
       "source": "SingleHousing_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 7,
-      "params": 131335,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 5,
+      "params": 33102,
       "layers": [
         {
-          "name": "dense_277",
+          "name": "dense_2380",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 159,
-          "params": 3975
+          "input_dim": 25,
+          "output_dim": 100,
+          "params": 2600
         },
         {
-          "name": "dense_278",
+          "name": "dense_2381",
           "activation": "elu",
-          "input_dim": 159,
-          "output_dim": 159,
-          "params": 25440
+          "input_dim": 100,
+          "output_dim": 100,
+          "params": 10100
         },
         {
-          "name": "dense_279",
+          "name": "dense_2382",
           "activation": "elu",
-          "input_dim": 159,
-          "output_dim": 159,
-          "params": 25440
+          "input_dim": 100,
+          "output_dim": 100,
+          "params": 10100
         },
         {
-          "name": "dense_280",
+          "name": "dense_2383",
           "activation": "elu",
-          "input_dim": 159,
-          "output_dim": 159,
-          "params": 25440
+          "input_dim": 100,
+          "output_dim": 100,
+          "params": 10100
         },
         {
-          "name": "dense_281",
-          "activation": "elu",
-          "input_dim": 159,
-          "output_dim": 159,
-          "params": 25440
-        },
-        {
-          "name": "dense_282",
-          "activation": "elu",
-          "input_dim": 159,
-          "output_dim": 159,
-          "params": 25440
-        },
-        {
-          "name": "dense_283",
+          "name": "dense_2384",
           "activation": "linear",
-          "input_dim": 159,
-          "output_dim": 1,
-          "params": 160
+          "input_dim": 100,
+          "output_dim": 2,
+          "params": 202
         }
       ]
     },
     {
       "name": "SmallMultiHousing_1",
       "source": "SmallMultiHousing_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 6,
-      "params": 78065,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 264154,
       "layers": [
         {
-          "name": "dense_298",
+          "name": "dense_2430",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 136,
-          "params": 3400
+          "input_dim": 25,
+          "output_dim": 356,
+          "params": 9256
         },
         {
-          "name": "dense_299",
+          "name": "dense_2431",
           "activation": "elu",
-          "input_dim": 136,
-          "output_dim": 136,
-          "params": 18632
+          "input_dim": 356,
+          "output_dim": 356,
+          "params": 127092
         },
         {
-          "name": "dense_300",
+          "name": "dense_2432",
           "activation": "elu",
-          "input_dim": 136,
-          "output_dim": 136,
-          "params": 18632
+          "input_dim": 356,
+          "output_dim": 356,
+          "params": 127092
         },
         {
-          "name": "dense_301",
-          "activation": "elu",
-          "input_dim": 136,
-          "output_dim": 136,
-          "params": 18632
-        },
-        {
-          "name": "dense_302",
-          "activation": "elu",
-          "input_dim": 136,
-          "output_dim": 136,
-          "params": 18632
-        },
-        {
-          "name": "dense_303",
+          "name": "dense_2433",
           "activation": "linear",
-          "input_dim": 136,
-          "output_dim": 1,
-          "params": 137
+          "input_dim": 356,
+          "output_dim": 2,
+          "params": 714
         }
       ]
     },
     {
       "name": "SmallMultiHousing_2",
       "source": "SmallMultiHousing_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 231505,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 9,
+      "params": 1051052,
       "layers": [
         {
-          "name": "dense_293",
+          "name": "dense_2587",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 273,
-          "params": 6825
+          "input_dim": 25,
+          "output_dim": 385,
+          "params": 10010
         },
         {
-          "name": "dense_294",
+          "name": "dense_2588",
           "activation": "elu",
-          "input_dim": 273,
-          "output_dim": 273,
-          "params": 74802
+          "input_dim": 385,
+          "output_dim": 385,
+          "params": 148610
         },
         {
-          "name": "dense_295",
+          "name": "dense_2589",
           "activation": "elu",
-          "input_dim": 273,
-          "output_dim": 273,
-          "params": 74802
+          "input_dim": 385,
+          "output_dim": 385,
+          "params": 148610
         },
         {
-          "name": "dense_296",
+          "name": "dense_2590",
           "activation": "elu",
-          "input_dim": 273,
-          "output_dim": 273,
-          "params": 74802
+          "input_dim": 385,
+          "output_dim": 385,
+          "params": 148610
         },
         {
-          "name": "dense_297",
+          "name": "dense_2591",
+          "activation": "elu",
+          "input_dim": 385,
+          "output_dim": 385,
+          "params": 148610
+        },
+        {
+          "name": "dense_2592",
+          "activation": "elu",
+          "input_dim": 385,
+          "output_dim": 385,
+          "params": 148610
+        },
+        {
+          "name": "dense_2593",
+          "activation": "elu",
+          "input_dim": 385,
+          "output_dim": 385,
+          "params": 148610
+        },
+        {
+          "name": "dense_2594",
+          "activation": "elu",
+          "input_dim": 385,
+          "output_dim": 385,
+          "params": 148610
+        },
+        {
+          "name": "dense_2595",
           "activation": "linear",
-          "input_dim": 273,
-          "output_dim": 1,
-          "params": 274
+          "input_dim": 385,
+          "output_dim": 2,
+          "params": 772
         }
       ]
     },
     {
       "name": "Terminal_1",
       "source": "Terminal_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 4,
-      "params": 132001,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 124048,
       "layers": [
         {
-          "name": "dense_1016",
+          "name": "dense_2610",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 250,
-          "params": 6250
+          "input_dim": 25,
+          "output_dim": 338,
+          "params": 8788
         },
         {
-          "name": "dense_1017",
+          "name": "dense_2611",
           "activation": "elu",
-          "input_dim": 250,
-          "output_dim": 250,
-          "params": 62750
+          "input_dim": 338,
+          "output_dim": 338,
+          "params": 114582
         },
         {
-          "name": "dense_1018",
-          "activation": "elu",
-          "input_dim": 250,
-          "output_dim": 250,
-          "params": 62750
-        },
-        {
-          "name": "dense_1019",
+          "name": "dense_2612",
           "activation": "linear",
-          "input_dim": 250,
-          "output_dim": 1,
-          "params": 251
+          "input_dim": 338,
+          "output_dim": 2,
+          "params": 678
         }
       ]
     },
     {
       "name": "Terminal_2",
       "source": "Terminal_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
+      "input_dim": 25,
+      "output_dim": 2,
       "layer_count": 4,
-      "params": 188401,
+      "params": 235874,
       "layers": [
         {
-          "name": "dense_1050",
+          "name": "dense_2866",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
+          "input_dim": 25,
+          "output_dim": 336,
+          "params": 8736
         },
         {
-          "name": "dense_1051",
+          "name": "dense_2867",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 336,
+          "output_dim": 336,
+          "params": 113232
         },
         {
-          "name": "dense_1052",
+          "name": "dense_2868",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 336,
+          "output_dim": 336,
+          "params": 113232
         },
         {
-          "name": "dense_1053",
+          "name": "dense_2869",
           "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
+          "input_dim": 336,
+          "output_dim": 2,
+          "params": 674
         }
       ]
     },
     {
       "name": "Theater_1",
       "source": "Theater_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 11,
-      "params": 84551,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 100598,
       "layers": [
         {
-          "name": "dense_251",
+          "name": "dense_2755",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 95,
-          "params": 2375
+          "input_dim": 25,
+          "output_dim": 303,
+          "params": 7878
         },
         {
-          "name": "dense_252",
+          "name": "dense_2756",
           "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
+          "input_dim": 303,
+          "output_dim": 303,
+          "params": 92112
         },
         {
-          "name": "dense_253",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_254",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_255",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_256",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_257",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_258",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_259",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_260",
-          "activation": "elu",
-          "input_dim": 95,
-          "output_dim": 95,
-          "params": 9120
-        },
-        {
-          "name": "dense_261",
+          "name": "dense_2757",
           "activation": "linear",
-          "input_dim": 95,
-          "output_dim": 1,
-          "params": 96
+          "input_dim": 303,
+          "output_dim": 2,
+          "params": 608
         }
       ]
     },
     {
       "name": "Theater_2",
       "source": "Theater_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 193225,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 301754,
       "layers": [
         {
-          "name": "dense_353",
+          "name": "dense_2904",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 249,
-          "params": 6225
+          "input_dim": 25,
+          "output_dim": 381,
+          "params": 9906
         },
         {
-          "name": "dense_354",
+          "name": "dense_2905",
           "activation": "elu",
-          "input_dim": 249,
-          "output_dim": 249,
-          "params": 62250
+          "input_dim": 381,
+          "output_dim": 381,
+          "params": 145542
         },
         {
-          "name": "dense_355",
+          "name": "dense_2906",
           "activation": "elu",
-          "input_dim": 249,
-          "output_dim": 249,
-          "params": 62250
+          "input_dim": 381,
+          "output_dim": 381,
+          "params": 145542
         },
         {
-          "name": "dense_356",
-          "activation": "elu",
-          "input_dim": 249,
-          "output_dim": 249,
-          "params": 62250
-        },
-        {
-          "name": "dense_357",
+          "name": "dense_2907",
           "activation": "linear",
-          "input_dim": 249,
-          "output_dim": 1,
-          "params": 250
+          "input_dim": 381,
+          "output_dim": 2,
+          "params": 764
         }
       ]
     },
     {
       "name": "TrainingCtr_1",
       "source": "TrainingCtr_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 278701,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 4,
+      "params": 112702,
       "layers": [
         {
-          "name": "dense_312",
+          "name": "dense_3058",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
+          "input_dim": 25,
+          "output_dim": 230,
+          "params": 5980
         },
         {
-          "name": "dense_313",
+          "name": "dense_3059",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 230,
+          "output_dim": 230,
+          "params": 53130
         },
         {
-          "name": "dense_314",
+          "name": "dense_3060",
           "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
+          "input_dim": 230,
+          "output_dim": 230,
+          "params": 53130
         },
         {
-          "name": "dense_315",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_316",
+          "name": "dense_3061",
           "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
+          "input_dim": 230,
+          "output_dim": 2,
+          "params": 462
         }
       ]
     },
     {
       "name": "TrainingCtr_2",
       "source": "TrainingCtr_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 278701,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 2,
+      "params": 11174,
       "layers": [
         {
-          "name": "dense_258",
+          "name": "dense_3233",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 300,
-          "params": 7500
+          "input_dim": 25,
+          "output_dim": 399,
+          "params": 10374
         },
         {
-          "name": "dense_259",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_260",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_261",
-          "activation": "elu",
-          "input_dim": 300,
-          "output_dim": 300,
-          "params": 90300
-        },
-        {
-          "name": "dense_262",
+          "name": "dense_3234",
           "activation": "linear",
-          "input_dim": 300,
-          "output_dim": 1,
-          "params": 301
+          "input_dim": 399,
+          "output_dim": 2,
+          "params": 800
         }
       ]
     },
     {
       "name": "Transport_1",
       "source": "Transport_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 275055,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 2,
+      "params": 9970,
       "layers": [
         {
-          "name": "dense_1892",
+          "name": "dense_3071",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 298,
-          "params": 7450
+          "input_dim": 25,
+          "output_dim": 356,
+          "params": 9256
         },
         {
-          "name": "dense_1893",
-          "activation": "elu",
-          "input_dim": 298,
-          "output_dim": 298,
-          "params": 89102
-        },
-        {
-          "name": "dense_1894",
-          "activation": "elu",
-          "input_dim": 298,
-          "output_dim": 298,
-          "params": 89102
-        },
-        {
-          "name": "dense_1895",
-          "activation": "elu",
-          "input_dim": 298,
-          "output_dim": 298,
-          "params": 89102
-        },
-        {
-          "name": "dense_1896",
+          "name": "dense_3072",
           "activation": "linear",
-          "input_dim": 298,
-          "output_dim": 1,
-          "params": 299
+          "input_dim": 356,
+          "output_dim": 2,
+          "params": 714
         }
       ]
     },
     {
       "name": "Transport_2",
       "source": "Transport_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
+      "input_dim": 25,
+      "output_dim": 2,
       "layer_count": 5,
-      "params": 233175,
+      "params": 492402,
       "layers": [
         {
-          "name": "dense_1543",
+          "name": "dense_3368",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 274,
-          "params": 6850
+          "input_dim": 25,
+          "output_dim": 400,
+          "params": 10400
         },
         {
-          "name": "dense_1544",
+          "name": "dense_3369",
           "activation": "elu",
-          "input_dim": 274,
-          "output_dim": 274,
-          "params": 75350
+          "input_dim": 400,
+          "output_dim": 400,
+          "params": 160400
         },
         {
-          "name": "dense_1545",
+          "name": "dense_3370",
           "activation": "elu",
-          "input_dim": 274,
-          "output_dim": 274,
-          "params": 75350
+          "input_dim": 400,
+          "output_dim": 400,
+          "params": 160400
         },
         {
-          "name": "dense_1546",
+          "name": "dense_3371",
           "activation": "elu",
-          "input_dim": 274,
-          "output_dim": 274,
-          "params": 75350
+          "input_dim": 400,
+          "output_dim": 400,
+          "params": 160400
         },
         {
-          "name": "dense_1547",
+          "name": "dense_3372",
           "activation": "linear",
-          "input_dim": 274,
-          "output_dim": 1,
-          "params": 275
+          "input_dim": 400,
+          "output_dim": 2,
+          "params": 802
         }
       ]
     },
     {
       "name": "Univ_1",
       "source": "Univ_1.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 226531,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 18424,
       "layers": [
         {
-          "name": "dense_1530",
+          "name": "dense_3196",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 270,
-          "params": 6750
+          "input_dim": 25,
+          "output_dim": 122,
+          "params": 3172
         },
         {
-          "name": "dense_1531",
+          "name": "dense_3197",
           "activation": "elu",
-          "input_dim": 270,
-          "output_dim": 270,
-          "params": 73170
+          "input_dim": 122,
+          "output_dim": 122,
+          "params": 15006
         },
         {
-          "name": "dense_1532",
-          "activation": "elu",
-          "input_dim": 270,
-          "output_dim": 270,
-          "params": 73170
-        },
-        {
-          "name": "dense_1533",
-          "activation": "elu",
-          "input_dim": 270,
-          "output_dim": 270,
-          "params": 73170
-        },
-        {
-          "name": "dense_1534",
+          "name": "dense_3198",
           "activation": "linear",
-          "input_dim": 270,
-          "output_dim": 1,
-          "params": 271
+          "input_dim": 122,
+          "output_dim": 2,
+          "params": 246
         }
       ]
     },
     {
       "name": "Univ_2",
       "source": "Univ_2.h5",
-      "input_dim": 24,
-      "output_dim": 1,
-      "layer_count": 5,
-      "params": 197821,
+      "input_dim": 25,
+      "output_dim": 2,
+      "layer_count": 3,
+      "params": 18152,
       "layers": [
         {
-          "name": "dense_1716",
+          "name": "dense_3354",
           "activation": "elu",
-          "input_dim": 24,
-          "output_dim": 252,
-          "params": 6300
+          "input_dim": 25,
+          "output_dim": 121,
+          "params": 3146
         },
         {
-          "name": "dense_1717",
+          "name": "dense_3355",
           "activation": "elu",
-          "input_dim": 252,
-          "output_dim": 252,
-          "params": 63756
+          "input_dim": 121,
+          "output_dim": 121,
+          "params": 14762
         },
         {
-          "name": "dense_1718",
-          "activation": "elu",
-          "input_dim": 252,
-          "output_dim": 252,
-          "params": 63756
-        },
-        {
-          "name": "dense_1719",
-          "activation": "elu",
-          "input_dim": 252,
-          "output_dim": 252,
-          "params": 63756
-        },
-        {
-          "name": "dense_1720",
+          "name": "dense_3356",
           "activation": "linear",
-          "input_dim": 252,
-          "output_dim": 1,
-          "params": 253
+          "input_dim": 121,
+          "output_dim": 2,
+          "params": 244
         }
       ]
     }

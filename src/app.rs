@@ -25,6 +25,7 @@ pub struct Co2App {
     model_error: Option<String>,
     reference_data: Option<ReferenceData>,
     reference_error: Option<String>,
+    model_blend_check: Option<String>,
     progress: f32,
     progress_message: String,
     progress_rx: Option<Receiver<ParetoProgressEvent>>,
@@ -41,6 +42,21 @@ impl Co2App {
         let (reference_data, reference_error) = match ReferenceData::load() {
             Ok(data) => (Some(data), None),
             Err(error) => (None, Some(error)),
+        };
+        let model_blend_check = match (&model_store, &reference_data) {
+            (Some(store), Some(data)) => {
+                let result = data
+                    .model1_weight_for_base("Office")
+                    .and_then(|weight| {
+                        let inputs = vec![vec![0.0; 25]; 10];
+                        store.predict_pair_split("Office", weight, &inputs)
+                    });
+                match result {
+                    Ok(outputs) => Some(format!("Office split sanity: {} samples", outputs.len())),
+                    Err(error) => Some(format!("Office split sanity failed: {error}")),
+                }
+            }
+            _ => None,
         };
 
         Self {
@@ -75,6 +91,7 @@ impl Co2App {
             model_error,
             reference_data,
             reference_error,
+            model_blend_check,
             progress: 0.0,
             progress_message: "대기".to_string(),
             progress_rx: None,
@@ -396,6 +413,9 @@ impl Co2App {
                 data.info_len(),
                 data.umap_rows()
             ));
+            if let Some(check) = &self.model_blend_check {
+                ui.small(check);
+            }
             ui.add_space(8.0);
         } else if let Some(error) = &self.reference_error {
             ui.colored_label(Color32::from_rgb(160, 54, 45), format!("metadata load failed: {error}"));

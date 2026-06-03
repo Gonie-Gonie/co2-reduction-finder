@@ -60,6 +60,24 @@ impl ReferenceData {
     pub fn get(&self, model_name: &str) -> Option<&BuildingMetadata> {
         self.info.get(model_name)
     }
+
+    pub fn model1_weight_for_base(&self, base_type: &str) -> Result<f64, String> {
+        let model1_name = format!("{base_type}_1");
+        let model2_name = format!("{base_type}_2");
+        let model1 = self
+            .get(&model1_name)
+            .ok_or_else(|| format!("metadata not found: {model1_name}"))?;
+        let model2 = self
+            .get(&model2_name)
+            .ok_or_else(|| format!("metadata not found: {model2_name}"))?;
+
+        let sum = model1.weight + model2.weight;
+        if (sum - 1.0).abs() > 0.000_001 {
+            return Err(format!("{base_type} model weights do not sum to 1.0: {sum}"));
+        }
+
+        Ok(model1.weight)
+    }
 }
 
 #[cfg(test)]
@@ -73,6 +91,6 @@ mod tests {
         assert_eq!(data.info_len(), 40);
         assert!(data.umap_rows() > 0);
         assert!(data.get("Office_1").is_some());
+        assert!((data.model1_weight_for_base("Office").unwrap() - 0.522416097).abs() < 0.000_001);
     }
 }
-

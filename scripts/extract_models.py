@@ -175,7 +175,7 @@ def write_manifest(models, manifest_path: Path, binary_path: Path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-dir", default=".reference/pyCO2module/models")
+    parser.add_argument("--model-dir", default=".reference/data-02 annmodels")
     parser.add_argument("--out", default="assets/models.c2m")
     parser.add_argument("--manifest", default="assets/models_manifest.json")
     args = parser.parse_args()
@@ -197,4 +197,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
