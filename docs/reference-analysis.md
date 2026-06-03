@@ -13,6 +13,7 @@ This memo captures what has been learned from `.reference/pyScript` and `.refere
 - `.reference/pyCO2module/buildings_and_ECMs.csv`
 - `.reference/pyScript/integrated_summary.csv`
 - `.reference/pyScript/integrated_lookuptable.csv`
+- `.reference/02 Excel기반 에너지 감축계수 조회 tool.xlsx` workbook metadata and formula XML for `MAIN` and `계산sheet` only; large DB sheets were not opened.
 
 ## ANN Shape
 
@@ -116,12 +117,27 @@ Important: step 2 is sample splitting, not value blending. Python computes `mode
 - CO2 coefficients:
   - electricity: `0.45941 kgCO2/kWh`
   - gas: `0.20245 kgCO2/kWh`
+- Excel dashboard metric conversion factors from `계산sheet!R5:U9`:
+  - `전기`: gas `0`, electricity `1`, `[MWh]`
+  - `가스`: gas `1`, electricity `0`, `[MWh]`
+  - `에너지소요량`: gas `1`, electricity `1`, `[MWh]`
+  - `1차에너지소요량`: gas `1.1`, electricity `2.75`, `[MWh]`
+  - `CO2`: gas `0.20245`, electricity `0.45941`, `[tCO2eq]`
 - Retrofit unit cost constants in `post_simulation.py` should move into Rust data/config.
 - U-value/SHGC lookup comes from `Umap.csv`.
 - Building type labels and model split weights come from `info.csv`.
 
+## Excel MAIN Sheet Chart Flow
+
+- `MAIN` contains final user-facing formulas and chart objects.
+- `계산sheet!C57:F60` converts gas/electric before/after/delta mean and std to the selected metric using `L31:L33`, area, and `/1000`.
+- `MAIN!J8:O11` pulls the selected metric mean/std/reduction/cost for the user-entered alternatives.
+- `chart2` plots distribution curves from `계산sheet!H56:DL63`; this matches Excel's mean/std normal-distribution presentation.
+- `chart4` plots single element-technology effects from `계산sheet!B69:J80`.
+- `chart1` and `chart3` plot reduction/cost scatter data from Pareto ranges around `계산sheet!H86:J285`, with target-optimal points pulled back to `MAIN!S:U`.
+
 ## Open Questions
 
-- The Excel dashboard layout still needs to be inspected carefully. Because the file is larger than 1GB, do not open it casually in automation.
+- Exact pixel-level Excel dashboard styling can still be refined, but the calculation and chart data flow for `MAIN`/`계산sheet` is now documented.
 - Need confirm whether final deliverable means raw portable app `.exe`, NSIS setup `.exe`, or both.
 - Need choose the statistical dominance rule for staged Pareto filtering.

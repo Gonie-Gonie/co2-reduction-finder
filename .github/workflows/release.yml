@@ -56,7 +56,7 @@ jobs:
           $asset = "target/release/co2-reduction-finder.exe"
           $name = "co2-reduction-finder-$tag-windows-x64.exe"
           $notesPath = "docs/release-notes/$tag.md"
-          $title = "CO2 Reduction Finder $tag"
+          $title = $tag
           Copy-Item $asset $name
           gh release view $tag *> $null
           $releaseExists = ($LASTEXITCODE -eq 0)

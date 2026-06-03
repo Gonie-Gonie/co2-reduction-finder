@@ -44,8 +44,9 @@ Last updated: 2026-06-03
 
 ## Current Implementation Baseline
 
-- `src/app.rs`: egui dashboard skeleton with dynamic comparison options, level-based ECM controls, progress display, cancellation, embedded Korean font support, and live ANN-backed calculation.
-- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, Python-style `_1/_2` sample split, CO2 summaries, Python-reference retrofit costs, and staged Pareto search.
+- `src/app.rs`: egui dashboard with dynamic comparison options, level-based ECM controls, graph sections for user alternatives, single-measure effects, and Pareto candidates, progress display, cancellation, embedded Korean font support, and live ANN-backed calculation for non-Pareto outputs.
+- `src/domain/metrics.rs`: Excel-compatible metric conversion factors from `계산sheet!R5:U9` for electricity, gas, final energy demand, primary energy demand, and greenhouse gas emissions.
+- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, Python-style `_1/_2` sample split, energy/CO2 mean and standard deviation summaries, Python-reference retrofit costs, and metric-aware staged Pareto search.
 - `src/domain/mlp.rs`: custom Dense MLP forward pass with parallel batch prediction.
 - `src/domain/model_store.rs`: embedded compact model asset loader.
 - `src/domain/uncertainty.rs`: empirical distribution summary and smoothed histogram data.
@@ -73,9 +74,25 @@ Last updated: 2026-06-03
 
 ## Current Limitations
 
-- Long Pareto option labels need a more polished result presentation.
 - Pareto dominance currently uses point estimates from staged sample counts; uncertainty-band dominance still needs a richer sample-distribution result type.
-- The Excel dashboard layout still needs deliberate visual matching once the large workbook can be inspected safely.
+- The graph layout is now sectioned like Excel `MAIN`, but exact visual styling can still be refined after user feedback on built exe screenshots.
+- UI distribution curves currently use the computed mean/std result layer that matches Excel's dashboard plotting flow; a later refinement can expose empirical smoothed histograms from raw sample arrays.
+
+## Excel Dashboard Notes
+
+- The 1GB workbook was inspected through XLSX XML entries rather than opened in Excel.
+- `MAIN` is small enough to inspect safely and contains final dashboard formulas and chart links.
+- `계산sheet` contains the selected metric conversion table:
+  - 전기: gas `0`, elec `1`, unit `[MWh]`
+  - 가스: gas `1`, elec `0`, unit `[MWh]`
+  - 에너지소요량: gas `1`, elec `1`, unit `[MWh]`
+  - 1차에너지소요량: gas `1.1`, elec `2.75`, unit `[MWh]`
+  - CO2: gas `0.20245`, elec `0.45941`, unit `[tCO2eq]`
+- `MAIN` chart links confirmed:
+  - distribution chart from `계산sheet!H56:DL63`
+  - single-measure chart from `계산sheet!B69:J80`
+  - reduction/cost scatter charts from `계산sheet!H86:J285`
+- GitHub Releases show a tag and title separately. This is official GitHub behavior, but the workflow now sets the release title to the tag only and release notes start with `## Changes` to avoid duplicate-looking names.
 
 ## Official References Checked
 

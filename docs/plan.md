@@ -24,16 +24,19 @@
 - Port Umap conversion. Done for baseline and level-based retrofit options.
 - Port uncertain variable generation. Initial deterministic LHS-style 1000-sample path done.
 - Port ANN MLP inference with parallel batch execution. Done for embedded corrected MLP assets.
-- Port energy/CO2 statistics using both summary statistics and empirical sample distributions. Initial summary path done; UI distribution output still pending.
-- Add smoothed histogram/density data for UI visualization.
+- Port energy/CO2 statistics using mean/std from sample-level predictions. Done for gas, electricity, final energy, primary energy, and greenhouse gas metrics.
+- Add Excel-compatible metric conversion factor management. Done in `src/domain/metrics.rs`.
+- Add smoothed histogram/density data for UI visualization. Initial distribution curves are drawn from the same mean/std layer as Excel; empirical smoothed histograms remain a follow-up.
 - Port retrofit cost calculation. Done using the Python reference formula, scaled by selected app area.
 - Add focused unit tests for conversions, statistics, and cost branches.
 
 ## Milestone 3: Dashboard UI
 
-- Inspect Excel `dashboard` layout deliberately.
-- Recreate the dashboard surface in egui.
-- Support dynamic comparison options.
+- Inspect Excel `MAIN` dashboard layout deliberately. Done through XLSX XML without opening the 1GB workbook.
+- Recreate the dashboard surface in egui. Initial graph-based section layout done.
+- Support dynamic comparison options. Done.
+- Support metric selection for electricity, gas, final energy, primary energy, and greenhouse gas. Done.
+- Auto-refresh non-Pareto results as inputs change. Done.
 - Add validation states and saved presets if useful.
 
 ## Milestone 4: Pareto Backend Jobs
@@ -47,6 +50,8 @@
   - final 1000-sample refinement
 - Keep UI responsive and show result updates as they arrive.
 - Initial staged Pareto backend is implemented with cancellation. The next improvement is uncertainty-band dominance instead of point-estimate dominance.
+- Pareto scoring now follows the selected dashboard metric instead of always using CO2.
+- Pareto is invalidated when building context, area, or metric changes, but remains available while user comparison options change.
 
 ## Milestone 5: Packaging
 
@@ -64,3 +69,4 @@
 
 - Manage release notes by tag under `docs/release-notes/`. Done.
 - Feed matching release notes into GitHub Release automation. Done.
+- Use tag-only GitHub Release titles and start release note bodies with `## Changes` to avoid duplicate-looking release names. Done.

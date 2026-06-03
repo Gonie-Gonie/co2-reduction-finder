@@ -7,11 +7,11 @@ use std::{
     thread,
 };
 
-use super::{model_store::EmbeddedModelStore, reference_data::ReferenceData};
+use super::{
+    metrics::EnergyMetric, model_store::EmbeddedModelStore, reference_data::ReferenceData,
+};
 
 const DEFAULT_SAMPLE_COUNT: usize = 1000;
-const CO2_ELEC: f64 = 0.45941;
-const CO2_GAS: f64 = 0.20245;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuildingType {
@@ -168,29 +168,69 @@ pub struct EstimateRequest {
     pub climate: String,
     pub era: String,
     pub area_m2: f64,
+    pub metric: EnergyMetric,
     pub options: Vec<RetrofitOption>,
 }
 
-#[derive(Debug, Clone)]
-pub struct EnergyTriplet {
+#[derive(Debug, Clone, Copy)]
+pub struct EnergyValues {
     pub gas: f64,
     pub elec: f64,
+    pub total: f64,
+    pub primary: f64,
     pub co2: f64,
+}
+
+impl EnergyValues {
+    fn from_gas_elec(gas: f64, elec: f64) -> Self {
+        let primary = EnergyMetric::PrimaryEnergy
+            .factor()
+            .per_area_value(gas, elec);
+        let co2 = EnergyMetric::Ghg.factor().per_area_value(gas, elec);
+        Self {
+            gas,
+            elec,
+            total: gas + elec,
+            primary,
+            co2,
+        }
+    }
+
+    fn zero() -> Self {
+        Self {
+            gas: 0.0,
+            elec: 0.0,
+            total: 0.0,
+            primary: 0.0,
+            co2: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct EnergyStats {
+    pub mean: EnergyValues,
+    pub std: EnergyValues,
+}
+
+#[derive(Debug, Clone)]
+struct EnergyDistribution {
+    stats: EnergyStats,
+    samples: Vec<EnergyValues>,
 }
 
 #[derive(Debug, Clone)]
 pub struct OptionEstimate {
     pub id: u64,
     pub label: String,
-    pub gas_after: f64,
-    pub elec_after: f64,
-    pub co2_reduction: f64,
+    pub after: EnergyStats,
+    pub reduction: EnergyStats,
     pub cost: u64,
 }
 
 #[derive(Debug, Clone)]
 pub struct EstimateResult {
-    pub baseline: EnergyTriplet,
+    pub baseline: EnergyStats,
     pub options: Vec<OptionEstimate>,
 }
 
@@ -432,7 +472,8 @@ struct EvaluationContext {
     era: u8,
     model1_weight: f64,
     uncertain_samples: Vec<[f32; 7]>,
-    baseline: EnergyTriplet,
+    baseline: EnergyStats,
+    baseline_samples: Vec<EnergyValues>,
 }
 
 fn prepare_evaluation_context(
@@ -468,7 +509,7 @@ fn prepare_evaluation_context(
     let before_inputs = build_ann_inputs(&uncertain_samples, &before_row);
     let before_predictions =
         model_store.predict_pair_split(&base_type, model1_weight, &before_inputs)?;
-    let baseline = summarize_predictions(&before_predictions)?;
+    let baseline_distribution = summarize_predictions(&before_predictions)?;
 
     Ok(EvaluationContext {
         base_type,
@@ -477,7 +518,8 @@ fn prepare_evaluation_context(
         era,
         model1_weight,
         uncertain_samples,
-        baseline,
+        baseline: baseline_distribution.stats,
+        baseline_samples: baseline_distribution.samples,
     })
 }
 
@@ -500,8 +542,15 @@ fn evaluate_option(
     let after_predictions =
         model_store.predict_pair_split(&context.base_type, context.model1_weight, &after_inputs)?;
     let after = summarize_predictions(&after_predictions)?;
+    let reduction = summarize_reductions(&context.baseline_samples, &after.samples)?;
 
-    Ok(estimate_option(&context.baseline, &after, area_m2, option))
+    Ok(estimate_option(
+        context.baseline,
+        after.stats,
+        reduction,
+        area_m2,
+        option,
+    ))
 }
 
 pub fn run_pareto_job(
@@ -569,10 +618,13 @@ fn run_pareto_job_inner(
         sender,
         cancel,
     )?;
-    let intermediate_options = limit_front(pareto_front(screened), PARETO_INTERMEDIATE_LIMIT)
-        .into_iter()
-        .map(|candidate| candidate.option)
-        .collect::<Vec<_>>();
+    let intermediate_options = limit_front(
+        pareto_front(screened, request.metric),
+        PARETO_INTERMEDIATE_LIMIT,
+    )
+    .into_iter()
+    .map(|candidate| candidate.option)
+    .collect::<Vec<_>>();
 
     send_progress(
         sender,
@@ -591,10 +643,13 @@ fn run_pareto_job_inner(
         sender,
         cancel,
     )?;
-    let final_options = limit_front(pareto_front(intermediate), PARETO_FINAL_LIMIT)
-        .into_iter()
-        .map(|candidate| candidate.option)
-        .collect::<Vec<_>>();
+    let final_options = limit_front(
+        pareto_front(intermediate, request.metric),
+        PARETO_FINAL_LIMIT,
+    )
+    .into_iter()
+    .map(|candidate| candidate.option)
+    .collect::<Vec<_>>();
 
     send_progress(
         sender,
@@ -613,23 +668,28 @@ fn run_pareto_job_inner(
         sender,
         cancel,
     )?;
-    let mut final_front = limit_front(pareto_front(final_scored), PARETO_FINAL_LIMIT);
+    let mut final_front = limit_front(
+        pareto_front(final_scored, request.metric),
+        PARETO_FINAL_LIMIT,
+    );
     final_front.sort_by(|a, b| {
         a.estimate.cost.cmp(&b.estimate.cost).then_with(|| {
-            b.estimate
-                .co2_reduction
-                .total_cmp(&a.estimate.co2_reduction)
+            estimate_metric_reduction(&b.estimate, request.metric)
+                .total_cmp(&estimate_metric_reduction(&a.estimate, request.metric))
         })
     });
 
     let mut final_request = request.clone();
-    let mut options = request.options.clone();
-    for (index, candidate) in final_front.into_iter().enumerate() {
-        let mut option = candidate.option;
-        option.id = 100_000 + index as u64;
-        option.label = format!("Pareto {}: {}", index + 1, option.spec.summary_label());
-        options.push(option);
-    }
+    let options = final_front
+        .into_iter()
+        .enumerate()
+        .map(|(index, candidate)| {
+            let mut option = candidate.option;
+            option.id = 100_000 + index as u64;
+            option.label = format!("Pareto {}: {}", index + 1, option.spec.summary_label());
+            option
+        })
+        .collect::<Vec<_>>();
     final_request.options = options;
 
     send_progress(sender, cancel, 0.98, "결과 정렬")?;
@@ -676,7 +736,7 @@ fn evaluate_pareto_stage(
             model_store,
             reference_data,
         )?;
-        if estimate.co2_reduction > 0.0 && estimate.cost > 0 {
+        if estimate_metric_reduction(&estimate, request.metric) > 0.0 && estimate.cost > 0 {
             scored.push(ScoredCandidate { option, estimate });
         }
     }
@@ -737,20 +797,23 @@ fn bit_enabled(bits: u16, index: u16) -> bool {
     bits & (1_u16 << index) != 0
 }
 
-fn pareto_front(mut candidates: Vec<ScoredCandidate>) -> Vec<ScoredCandidate> {
+fn pareto_front(
+    mut candidates: Vec<ScoredCandidate>,
+    metric: EnergyMetric,
+) -> Vec<ScoredCandidate> {
     candidates.sort_by(|a, b| {
         a.estimate.cost.cmp(&b.estimate.cost).then_with(|| {
-            b.estimate
-                .co2_reduction
-                .total_cmp(&a.estimate.co2_reduction)
+            estimate_metric_reduction(&b.estimate, metric)
+                .total_cmp(&estimate_metric_reduction(&a.estimate, metric))
         })
     });
 
     let mut front = Vec::new();
     let mut best_reduction = f64::NEG_INFINITY;
     for candidate in candidates {
-        if candidate.estimate.co2_reduction > best_reduction + 0.05 {
-            best_reduction = candidate.estimate.co2_reduction;
+        let reduction = estimate_metric_reduction(&candidate.estimate, metric);
+        if reduction > best_reduction + 0.05 {
+            best_reduction = reduction;
             front.push(candidate);
         }
     }
@@ -790,19 +853,24 @@ fn send_progress(
 }
 
 fn estimate_option(
-    baseline: &EnergyTriplet,
-    after: &EnergyTriplet,
+    _baseline: EnergyStats,
+    after: EnergyStats,
+    reduction: EnergyStats,
     area_m2: f64,
     option: &RetrofitOption,
 ) -> OptionEstimate {
     OptionEstimate {
         id: option.id,
         label: option.label.clone(),
-        gas_after: after.gas,
-        elec_after: after.elec,
-        co2_reduction: round1(baseline.co2 - after.co2),
+        after,
+        reduction,
         cost: retrofit_cost(option.spec, area_m2),
     }
+}
+
+fn estimate_metric_reduction(estimate: &OptionEstimate, metric: EnergyMetric) -> f64 {
+    let factor = metric.factor();
+    factor.per_area_value(estimate.reduction.mean.gas, estimate.reduction.mean.elec)
 }
 
 fn round1(value: f64) -> f64 {
@@ -992,14 +1060,12 @@ fn build_ann_inputs(uncertain_samples: &[[f32; 7]], converted_row: &[f32; 18]) -
         .collect()
 }
 
-fn summarize_predictions(predictions: &[Vec<f32>]) -> Result<EnergyTriplet, String> {
+fn summarize_predictions(predictions: &[Vec<f32>]) -> Result<EnergyDistribution, String> {
     if predictions.is_empty() {
         return Err("cannot summarize empty prediction array".to_string());
     }
 
-    let mut gas_sum = 0.0;
-    let mut elec_sum = 0.0;
-    let mut co2_sum = 0.0;
+    let mut samples = Vec::with_capacity(predictions.len());
     for prediction in predictions {
         if prediction.len() != 2 {
             return Err(format!(
@@ -1010,17 +1076,89 @@ fn summarize_predictions(predictions: &[Vec<f32>]) -> Result<EnergyTriplet, Stri
 
         let gas = prediction[0] as f64;
         let elec = prediction[1] as f64;
-        gas_sum += gas;
-        elec_sum += elec;
-        co2_sum += elec * CO2_ELEC + gas * CO2_GAS;
+        samples.push(EnergyValues::from_gas_elec(gas, elec));
     }
 
-    let n = predictions.len() as f64;
-    Ok(EnergyTriplet {
-        gas: round1(gas_sum / n),
-        elec: round1(elec_sum / n),
-        co2: round1(co2_sum / n),
+    Ok(EnergyDistribution {
+        stats: summarize_energy_values(&samples)?,
+        samples,
     })
+}
+
+fn summarize_reductions(
+    baseline: &[EnergyValues],
+    after: &[EnergyValues],
+) -> Result<EnergyStats, String> {
+    if baseline.len() != after.len() {
+        return Err(format!(
+            "baseline and after sample counts differ: {} vs {}",
+            baseline.len(),
+            after.len()
+        ));
+    }
+
+    let reductions = baseline
+        .iter()
+        .zip(after.iter())
+        .map(|(before, after)| {
+            EnergyValues::from_gas_elec(before.gas - after.gas, before.elec - after.elec)
+        })
+        .collect::<Vec<_>>();
+    summarize_energy_values(&reductions)
+}
+
+fn summarize_energy_values(samples: &[EnergyValues]) -> Result<EnergyStats, String> {
+    if samples.is_empty() {
+        return Err("cannot summarize empty energy sample array".to_string());
+    }
+
+    let n = samples.len() as f64;
+    let mut sum = EnergyValues::zero();
+    for sample in samples {
+        sum.gas += sample.gas;
+        sum.elec += sample.elec;
+        sum.total += sample.total;
+        sum.primary += sample.primary;
+        sum.co2 += sample.co2;
+    }
+
+    let mean = EnergyValues {
+        gas: sum.gas / n,
+        elec: sum.elec / n,
+        total: sum.total / n,
+        primary: sum.primary / n,
+        co2: sum.co2 / n,
+    };
+
+    let mut variance_sum = EnergyValues::zero();
+    for sample in samples {
+        variance_sum.gas += (sample.gas - mean.gas).powi(2);
+        variance_sum.elec += (sample.elec - mean.elec).powi(2);
+        variance_sum.total += (sample.total - mean.total).powi(2);
+        variance_sum.primary += (sample.primary - mean.primary).powi(2);
+        variance_sum.co2 += (sample.co2 - mean.co2).powi(2);
+    }
+
+    Ok(EnergyStats {
+        mean: round_values(mean),
+        std: round_values(EnergyValues {
+            gas: (variance_sum.gas / n).sqrt(),
+            elec: (variance_sum.elec / n).sqrt(),
+            total: (variance_sum.total / n).sqrt(),
+            primary: (variance_sum.primary / n).sqrt(),
+            co2: (variance_sum.co2 / n).sqrt(),
+        }),
+    })
+}
+
+fn round_values(values: EnergyValues) -> EnergyValues {
+    EnergyValues {
+        gas: round1(values.gas),
+        elec: round1(values.elec),
+        total: round1(values.total),
+        primary: round1(values.primary),
+        co2: round1(values.co2),
+    }
 }
 
 fn generate_uncertain_samples(count: usize) -> Vec<[f32; 7]> {
@@ -1134,6 +1272,7 @@ mod tests {
             climate: "0".to_string(),
             era: "2".to_string(),
             area_m2: 1000.0,
+            metric: crate::domain::EnergyMetric::Ghg,
             options: vec![RetrofitOption {
                 id: 1,
                 label: "test".to_string(),
@@ -1145,8 +1284,10 @@ mod tests {
             .expect("ANN estimate should succeed");
 
         assert_eq!(result.options.len(), 1);
-        assert!(result.baseline.elec.is_finite());
-        assert!(result.options[0].elec_after.is_finite());
+        assert!(result.baseline.mean.elec.is_finite());
+        assert!(result.baseline.std.elec.is_finite());
+        assert!(result.options[0].after.mean.elec.is_finite());
+        assert!(result.options[0].reduction.mean.co2.is_finite());
     }
 
     #[test]
