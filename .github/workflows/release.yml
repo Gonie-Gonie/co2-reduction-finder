@@ -55,10 +55,22 @@ jobs:
           $tag = "${{ steps.meta.outputs.tag }}"
           $asset = "target/release/co2-reduction-finder.exe"
           $name = "co2-reduction-finder-$tag-windows-x64.exe"
+          $notesPath = "docs/release-notes/$tag.md"
+          $title = "CO2 Reduction Finder $tag"
           Copy-Item $asset $name
-          if (gh release view $tag *> $null) {
+          gh release view $tag *> $null
+          $releaseExists = ($LASTEXITCODE -eq 0)
+          if ($releaseExists) {
+            if (Test-Path $notesPath) {
+              gh release edit $tag --title $title --notes-file $notesPath
+            } else {
+              gh release edit $tag --title $title --notes "Windows native Rust GUI executable build."
+            }
             gh release upload $tag $name --clobber
           } else {
-            gh release create $tag $name --title "CO2 Reduction Finder $tag" --notes "Windows native Rust GUI executable build."
+            if (Test-Path $notesPath) {
+              gh release create $tag $name --title $title --notes-file $notesPath
+            } else {
+              gh release create $tag $name --title $title --notes "Windows native Rust GUI executable build."
+            }
           }
-

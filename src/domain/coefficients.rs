@@ -1,4 +1,11 @@
-use std::{collections::BTreeSet, thread, time::Duration};
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+        mpsc::Sender,
+    },
+    thread,
+};
 
 use super::{model_store::EmbeddedModelStore, reference_data::ReferenceData};
 
@@ -20,11 +27,7 @@ pub struct SelectItem {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum RetrofitMeasure {
-    Wall,
-    Roof,
-    Floor,
-    Window,
+pub enum BinaryRetrofitMeasure {
     Cooling,
     Heating,
     Hx,
@@ -35,12 +38,8 @@ pub enum RetrofitMeasure {
     Pv,
 }
 
-impl RetrofitMeasure {
-    pub const ALL: [Self; 12] = [
-        Self::Wall,
-        Self::Roof,
-        Self::Floor,
-        Self::Window,
+impl BinaryRetrofitMeasure {
+    pub const ALL: [Self; 8] = [
         Self::Cooling,
         Self::Heating,
         Self::Hx,
@@ -53,10 +52,6 @@ impl RetrofitMeasure {
 
     pub fn label(self) -> &'static str {
         match self {
-            Self::Wall => "벽체",
-            Self::Roof => "지붕",
-            Self::Floor => "바닥",
-            Self::Window => "창호",
             Self::Cooling => "냉방",
             Self::Heating => "난방",
             Self::Hx => "열교환",
@@ -69,11 +64,102 @@ impl RetrofitMeasure {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct RetrofitSpec {
+    pub wall: u8,
+    pub roof: u8,
+    pub floor: u8,
+    pub window: u8,
+    pub cooling: bool,
+    pub heating: bool,
+    pub hx: bool,
+    pub lights: bool,
+    pub hw_boiler: bool,
+    pub coolroof: bool,
+    pub blind: bool,
+    pub pv: bool,
+}
+
+impl RetrofitSpec {
+    pub fn active_count(self) -> usize {
+        [
+            self.wall > 0,
+            self.roof > 0,
+            self.floor > 0,
+            self.window > 0,
+            self.cooling,
+            self.heating,
+            self.hx,
+            self.lights,
+            self.hw_boiler,
+            self.coolroof,
+            self.blind,
+            self.pv,
+        ]
+        .into_iter()
+        .filter(|active| *active)
+        .count()
+    }
+
+    pub fn is_enabled(self, measure: BinaryRetrofitMeasure) -> bool {
+        match measure {
+            BinaryRetrofitMeasure::Cooling => self.cooling,
+            BinaryRetrofitMeasure::Heating => self.heating,
+            BinaryRetrofitMeasure::Hx => self.hx,
+            BinaryRetrofitMeasure::Lights => self.lights,
+            BinaryRetrofitMeasure::HwBoiler => self.hw_boiler,
+            BinaryRetrofitMeasure::CoolRoof => self.coolroof,
+            BinaryRetrofitMeasure::Blind => self.blind,
+            BinaryRetrofitMeasure::Pv => self.pv,
+        }
+    }
+
+    pub fn set_enabled(&mut self, measure: BinaryRetrofitMeasure, enabled: bool) {
+        match measure {
+            BinaryRetrofitMeasure::Cooling => self.cooling = enabled,
+            BinaryRetrofitMeasure::Heating => self.heating = enabled,
+            BinaryRetrofitMeasure::Hx => self.hx = enabled,
+            BinaryRetrofitMeasure::Lights => self.lights = enabled,
+            BinaryRetrofitMeasure::HwBoiler => self.hw_boiler = enabled,
+            BinaryRetrofitMeasure::CoolRoof => self.coolroof = enabled,
+            BinaryRetrofitMeasure::Blind => self.blind = enabled,
+            BinaryRetrofitMeasure::Pv => self.pv = enabled,
+        }
+    }
+
+    pub fn summary_label(self) -> String {
+        let mut parts = Vec::new();
+        if self.wall > 0 {
+            parts.push(format!("벽{}", self.wall));
+        }
+        if self.roof > 0 {
+            parts.push(format!("지붕{}", self.roof));
+        }
+        if self.floor > 0 {
+            parts.push(format!("바닥{}", self.floor));
+        }
+        if self.window > 0 {
+            parts.push(format!("창{}", self.window));
+        }
+        for measure in BinaryRetrofitMeasure::ALL {
+            if self.is_enabled(measure) {
+                parts.push(measure.label().to_string());
+            }
+        }
+
+        if parts.is_empty() {
+            "기준".to_string()
+        } else {
+            parts.join(" ")
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RetrofitOption {
     pub id: u64,
     pub label: String,
-    pub measures: BTreeSet<RetrofitMeasure>,
+    pub spec: RetrofitSpec,
 }
 
 #[derive(Debug, Clone)]
@@ -112,6 +198,38 @@ pub struct EstimateResult {
 pub struct ParetoProgressEvent {
     pub progress: f32,
     pub message: String,
+    pub result: Option<EstimateResult>,
+    pub error: Option<String>,
+}
+
+impl ParetoProgressEvent {
+    fn progress(progress: f32, message: impl Into<String>) -> Self {
+        Self {
+            progress,
+            message: message.into(),
+            result: None,
+            error: None,
+        }
+    }
+
+    fn finished(message: impl Into<String>, result: EstimateResult) -> Self {
+        Self {
+            progress: 1.0,
+            message: message.into(),
+            result: Some(result),
+            error: None,
+        }
+    }
+
+    fn failed(message: impl Into<String>) -> Self {
+        let message = message.into();
+        Self {
+            progress: 1.0,
+            message: message.clone(),
+            result: None,
+            error: Some(message),
+        }
+    }
 }
 
 pub const BUILDING_TYPES: &[BuildingType] = &[
@@ -268,10 +386,61 @@ pub fn estimate_reduction(
     model_store: &EmbeddedModelStore,
     reference_data: &ReferenceData,
 ) -> Result<EstimateResult, String> {
+    estimate_reduction_with_sample_count(request, model_store, reference_data, DEFAULT_SAMPLE_COUNT)
+}
+
+fn estimate_reduction_with_sample_count(
+    request: &EstimateRequest,
+    model_store: &EmbeddedModelStore,
+    reference_data: &ReferenceData,
+    sample_count: usize,
+) -> Result<EstimateResult, String> {
     if request.area_m2 <= 0.0 {
         return Err("area_m2 must be greater than zero".to_string());
     }
+    if sample_count == 0 {
+        return Err("sample_count must be greater than zero".to_string());
+    }
 
+    let context = prepare_evaluation_context(request, model_store, reference_data, sample_count)?;
+
+    let options = request
+        .options
+        .iter()
+        .map(|option| {
+            evaluate_option(
+                &context,
+                request.area_m2,
+                option,
+                model_store,
+                reference_data,
+            )
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    Ok(EstimateResult {
+        baseline: context.baseline,
+        options,
+    })
+}
+
+#[derive(Debug, Clone)]
+struct EvaluationContext {
+    base_type: String,
+    residential: bool,
+    climate: u8,
+    era: u8,
+    model1_weight: f64,
+    uncertain_samples: Vec<[f32; 7]>,
+    baseline: EnergyTriplet,
+}
+
+fn prepare_evaluation_context(
+    request: &EstimateRequest,
+    model_store: &EmbeddedModelStore,
+    reference_data: &ReferenceData,
+    sample_count: usize,
+) -> Result<EvaluationContext, String> {
     let climate = request
         .climate
         .parse::<u8>()
@@ -280,64 +449,344 @@ pub fn estimate_reduction(
         .era
         .parse::<u8>()
         .map_err(|error| error.to_string())?;
-    let base_type = request.building_type.as_str();
+    let base_type = request.building_type.clone();
     let model1_name = format!("{base_type}_1");
     let residential = reference_data
         .get(&model1_name)
         .ok_or_else(|| format!("metadata not found: {model1_name}"))?
         .residential;
-    let model1_weight = reference_data.model1_weight_for_base(base_type)?;
-    let uncertain_samples = generate_uncertain_samples(DEFAULT_SAMPLE_COUNT);
+    let model1_weight = reference_data.model1_weight_for_base(&base_type)?;
+    let uncertain_samples = generate_uncertain_samples(sample_count);
 
     let before_row = converted_input_row(
         reference_data,
         residential,
         climate,
         era,
-        &RetrofitCodes::default(),
+        &RetrofitSpec::default(),
     )?;
     let before_inputs = build_ann_inputs(&uncertain_samples, &before_row);
     let before_predictions =
-        model_store.predict_pair_split(base_type, model1_weight, &before_inputs)?;
+        model_store.predict_pair_split(&base_type, model1_weight, &before_inputs)?;
     let baseline = summarize_predictions(&before_predictions)?;
 
-    let options = request
-        .options
-        .iter()
-        .map(|option| {
-            let codes = RetrofitCodes::from_option(option);
-            let after_row = converted_input_row(reference_data, residential, climate, era, &codes)?;
-            let after_inputs = build_ann_inputs(&uncertain_samples, &after_row);
-            let after_predictions =
-                model_store.predict_pair_split(base_type, model1_weight, &after_inputs)?;
-            let after = summarize_predictions(&after_predictions)?;
-
-            Ok(estimate_option(&baseline, &after, request.area_m2, option))
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-
-    Ok(EstimateResult { baseline, options })
+    Ok(EvaluationContext {
+        base_type,
+        residential,
+        climate,
+        era,
+        model1_weight,
+        uncertain_samples,
+        baseline,
+    })
 }
 
-pub fn run_preview_pareto_job(sender: std::sync::mpsc::Sender<ParetoProgressEvent>) {
-    thread::spawn(move || {
-        let phases = [
-            "50샘플 예비평가",
-            "불확실성 필터링",
-            "후보 재샘플링",
-            "1000샘플 정밀평가",
-            "결과 정렬",
-        ];
+fn evaluate_option(
+    context: &EvaluationContext,
+    area_m2: f64,
+    option: &RetrofitOption,
+    model_store: &EmbeddedModelStore,
+    reference_data: &ReferenceData,
+) -> Result<OptionEstimate, String> {
+    validate_retrofit_spec(option.spec)?;
+    let after_row = converted_input_row(
+        reference_data,
+        context.residential,
+        context.climate,
+        context.era,
+        &option.spec,
+    )?;
+    let after_inputs = build_ann_inputs(&context.uncertain_samples, &after_row);
+    let after_predictions =
+        model_store.predict_pair_split(&context.base_type, context.model1_weight, &after_inputs)?;
+    let after = summarize_predictions(&after_predictions)?;
 
-        for step in 0..=100 {
-            let phase = phases[(step as usize * phases.len()).saturating_sub(1) / 100];
-            let _ = sender.send(ParetoProgressEvent {
-                progress: step as f32 / 100.0,
-                message: phase.to_string(),
-            });
-            thread::sleep(Duration::from_millis(35));
+    Ok(estimate_option(&context.baseline, &after, area_m2, option))
+}
+
+pub fn run_pareto_job(
+    request: EstimateRequest,
+    model_store: EmbeddedModelStore,
+    reference_data: ReferenceData,
+    sender: Sender<ParetoProgressEvent>,
+    cancel: Arc<AtomicBool>,
+) {
+    thread::spawn(move || {
+        match run_pareto_job_inner(&request, &model_store, &reference_data, &sender, &cancel) {
+            Ok(result) => {
+                let _ = sender.send(ParetoProgressEvent::finished(
+                    "Pareto 후보 계산 완료",
+                    result,
+                ));
+            }
+            Err(error) if error == PARETO_CANCELLED => {
+                let _ = sender.send(ParetoProgressEvent::progress(1.0, "중지됨"));
+            }
+            Err(error) => {
+                let _ = sender.send(ParetoProgressEvent::failed(error));
+            }
         }
     });
+}
+
+const PARETO_CANCELLED: &str = "__pareto_cancelled__";
+const PARETO_SCREEN_SAMPLE_COUNT: usize = 50;
+const PARETO_INTERMEDIATE_SAMPLE_COUNT: usize = 200;
+const PARETO_FINAL_SAMPLE_COUNT: usize = 1000;
+const PARETO_INTERMEDIATE_LIMIT: usize = 96;
+const PARETO_FINAL_LIMIT: usize = 12;
+
+#[derive(Debug, Clone)]
+struct ScoredCandidate {
+    option: RetrofitOption,
+    estimate: OptionEstimate,
+}
+
+fn run_pareto_job_inner(
+    request: &EstimateRequest,
+    model_store: &EmbeddedModelStore,
+    reference_data: &ReferenceData,
+    sender: &Sender<ParetoProgressEvent>,
+    cancel: &AtomicBool,
+) -> Result<EstimateResult, String> {
+    send_progress(sender, cancel, 0.01, "Pareto 후보 생성")?;
+    let candidates = generate_pareto_candidates();
+
+    send_progress(
+        sender,
+        cancel,
+        0.03,
+        format!("50샘플 예비평가: {}개 후보", candidates.len()),
+    )?;
+    let screened = evaluate_pareto_stage(
+        request,
+        model_store,
+        reference_data,
+        candidates,
+        PARETO_SCREEN_SAMPLE_COUNT,
+        (0.03, 0.58),
+        "50샘플 예비평가",
+        sender,
+        cancel,
+    )?;
+    let intermediate_options = limit_front(pareto_front(screened), PARETO_INTERMEDIATE_LIMIT)
+        .into_iter()
+        .map(|candidate| candidate.option)
+        .collect::<Vec<_>>();
+
+    send_progress(
+        sender,
+        cancel,
+        0.60,
+        format!("200샘플 경계 재평가: {}개 후보", intermediate_options.len()),
+    )?;
+    let intermediate = evaluate_pareto_stage(
+        request,
+        model_store,
+        reference_data,
+        intermediate_options,
+        PARETO_INTERMEDIATE_SAMPLE_COUNT,
+        (0.60, 0.82),
+        "200샘플 경계 재평가",
+        sender,
+        cancel,
+    )?;
+    let final_options = limit_front(pareto_front(intermediate), PARETO_FINAL_LIMIT)
+        .into_iter()
+        .map(|candidate| candidate.option)
+        .collect::<Vec<_>>();
+
+    send_progress(
+        sender,
+        cancel,
+        0.84,
+        format!("1000샘플 최종평가: {}개 후보", final_options.len()),
+    )?;
+    let final_scored = evaluate_pareto_stage(
+        request,
+        model_store,
+        reference_data,
+        final_options,
+        PARETO_FINAL_SAMPLE_COUNT,
+        (0.84, 0.96),
+        "1000샘플 최종평가",
+        sender,
+        cancel,
+    )?;
+    let mut final_front = limit_front(pareto_front(final_scored), PARETO_FINAL_LIMIT);
+    final_front.sort_by(|a, b| {
+        a.estimate.cost.cmp(&b.estimate.cost).then_with(|| {
+            b.estimate
+                .co2_reduction
+                .total_cmp(&a.estimate.co2_reduction)
+        })
+    });
+
+    let mut final_request = request.clone();
+    let mut options = request.options.clone();
+    for (index, candidate) in final_front.into_iter().enumerate() {
+        let mut option = candidate.option;
+        option.id = 100_000 + index as u64;
+        option.label = format!("Pareto {}: {}", index + 1, option.spec.summary_label());
+        options.push(option);
+    }
+    final_request.options = options;
+
+    send_progress(sender, cancel, 0.98, "결과 정렬")?;
+    estimate_reduction_with_sample_count(
+        &final_request,
+        model_store,
+        reference_data,
+        DEFAULT_SAMPLE_COUNT,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_pareto_stage(
+    request: &EstimateRequest,
+    model_store: &EmbeddedModelStore,
+    reference_data: &ReferenceData,
+    candidates: Vec<RetrofitOption>,
+    sample_count: usize,
+    progress_range: (f32, f32),
+    phase: &str,
+    sender: &Sender<ParetoProgressEvent>,
+    cancel: &AtomicBool,
+) -> Result<Vec<ScoredCandidate>, String> {
+    let context = prepare_evaluation_context(request, model_store, reference_data, sample_count)?;
+    let total = candidates.len().max(1);
+    let mut scored = Vec::with_capacity(candidates.len());
+
+    for (index, option) in candidates.into_iter().enumerate() {
+        if index % 64 == 0 {
+            let ratio = index as f32 / total as f32;
+            let progress = progress_range.0 + (progress_range.1 - progress_range.0) * ratio;
+            send_progress(
+                sender,
+                cancel,
+                progress,
+                format!("{phase}: {}/{}", index, total),
+            )?;
+        }
+
+        let estimate = evaluate_option(
+            &context,
+            request.area_m2,
+            &option,
+            model_store,
+            reference_data,
+        )?;
+        if estimate.co2_reduction > 0.0 && estimate.cost > 0 {
+            scored.push(ScoredCandidate { option, estimate });
+        }
+    }
+
+    send_progress(
+        sender,
+        cancel,
+        progress_range.1,
+        format!("{phase}: {}/{}", total, total),
+    )?;
+
+    Ok(scored)
+}
+
+fn generate_pareto_candidates() -> Vec<RetrofitOption> {
+    let mut candidates = Vec::with_capacity(27_647);
+    let mut id = 10_000;
+
+    for wall in 0..=2 {
+        for roof in 0..=2 {
+            for floor in 0..=2 {
+                for window in 0..=3 {
+                    for bits in 0..(1_u16 << BinaryRetrofitMeasure::ALL.len()) {
+                        let spec = RetrofitSpec {
+                            wall,
+                            roof,
+                            floor,
+                            window,
+                            cooling: bit_enabled(bits, 0),
+                            heating: bit_enabled(bits, 1),
+                            hx: bit_enabled(bits, 2),
+                            lights: bit_enabled(bits, 3),
+                            hw_boiler: bit_enabled(bits, 4),
+                            coolroof: bit_enabled(bits, 5),
+                            blind: bit_enabled(bits, 6),
+                            pv: bit_enabled(bits, 7),
+                        };
+                        if spec.active_count() == 0 {
+                            continue;
+                        }
+
+                        candidates.push(RetrofitOption {
+                            id,
+                            label: spec.summary_label(),
+                            spec,
+                        });
+                        id += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    candidates
+}
+
+fn bit_enabled(bits: u16, index: u16) -> bool {
+    bits & (1_u16 << index) != 0
+}
+
+fn pareto_front(mut candidates: Vec<ScoredCandidate>) -> Vec<ScoredCandidate> {
+    candidates.sort_by(|a, b| {
+        a.estimate.cost.cmp(&b.estimate.cost).then_with(|| {
+            b.estimate
+                .co2_reduction
+                .total_cmp(&a.estimate.co2_reduction)
+        })
+    });
+
+    let mut front = Vec::new();
+    let mut best_reduction = f64::NEG_INFINITY;
+    for candidate in candidates {
+        if candidate.estimate.co2_reduction > best_reduction + 0.05 {
+            best_reduction = candidate.estimate.co2_reduction;
+            front.push(candidate);
+        }
+    }
+
+    front
+}
+
+fn limit_front(front: Vec<ScoredCandidate>, limit: usize) -> Vec<ScoredCandidate> {
+    if front.len() <= limit || limit == 0 {
+        return front;
+    }
+    if limit == 1 {
+        return front.into_iter().last().into_iter().collect();
+    }
+
+    let last = front.len() - 1;
+    let mut limited = Vec::with_capacity(limit);
+    for index in 0..limit {
+        let source_index = (index * last + (limit - 1) / 2) / (limit - 1);
+        limited.push(front[source_index].clone());
+    }
+    limited
+}
+
+fn send_progress(
+    sender: &Sender<ParetoProgressEvent>,
+    cancel: &AtomicBool,
+    progress: f32,
+    message: impl Into<String>,
+) -> Result<(), String> {
+    if cancel.load(Ordering::Relaxed) {
+        return Err(PARETO_CANCELLED.to_string());
+    }
+    sender
+        .send(ParetoProgressEvent::progress(progress, message))
+        .map_err(|_| PARETO_CANCELLED.to_string())
 }
 
 fn estimate_option(
@@ -346,16 +795,13 @@ fn estimate_option(
     area_m2: f64,
     option: &RetrofitOption,
 ) -> OptionEstimate {
-    let active_measures = option.measures.len();
-    let cost = (area_m2 * active_measures as f64 * 42_000.0).round() as u64;
-
     OptionEstimate {
         id: option.id,
         label: option.label.clone(),
         gas_after: after.gas,
         elec_after: after.elec,
         co2_reduction: round1(baseline.co2 - after.co2),
-        cost,
+        cost: retrofit_cost(option.spec, area_m2),
     }
 }
 
@@ -363,39 +809,130 @@ fn round1(value: f64) -> f64 {
     (value * 10.0).round() / 10.0
 }
 
-#[derive(Debug, Clone, Default)]
-struct RetrofitCodes {
-    wall: u8,
-    roof: u8,
-    floor: u8,
-    window: u8,
-    cooling: u8,
-    heating: u8,
-    hx: u8,
-    lights: u8,
-    hw_boiler: u8,
-    coolroof: u8,
-    blind: u8,
-    pv: u8,
+pub fn retrofit_cost(spec: RetrofitSpec, area_m2: f64) -> u64 {
+    if spec.active_count() == 0 || area_m2 <= 0.0 {
+        return 0;
+    }
+
+    const ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION: f64 = 0.1;
+    const WALL: f64 = 93_593.0;
+    const ROOF: f64 = 52_877.0;
+    const FLOOR: f64 = 76_428.0;
+    const WINDOW: f64 = 105_020.0;
+    const COOLING: f64 = 49_839.0;
+    const HEATING: f64 = 49_839.0;
+    const HX: f64 = 36_010.0;
+    const LIGHTS: f64 = 10_628.0;
+    const HW_BOILER: f64 = 8_167.0;
+    const COOLROOF: f64 = 45_882.0;
+    const BLIND: f64 = 19_935.0;
+    const PV: f64 = 71_027.0;
+
+    let mut required_architecture = 0.0;
+    if spec.wall > 0 {
+        required_architecture += WALL;
+    }
+    if spec.roof > 0 {
+        required_architecture += ROOF;
+    }
+    if spec.floor > 0 {
+        required_architecture += FLOOR;
+    }
+    if spec.window > 0 {
+        required_architecture += WINDOW;
+    }
+    if spec.wall == 2 {
+        required_architecture += WALL * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+    }
+    if spec.roof == 2 {
+        required_architecture += ROOF * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+    }
+    if spec.floor == 2 {
+        required_architecture += FLOOR * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+    }
+    if spec.window == 1 {
+        required_architecture += WINDOW * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION * 2.0;
+    }
+    if spec.window == 2 {
+        required_architecture += WINDOW * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+    }
+
+    let required_machine = bool_cost(spec.hx, HX)
+        + bool_cost(spec.cooling, COOLING)
+        + bool_cost(spec.heating, HEATING)
+        + bool_cost(spec.hw_boiler, HW_BOILER);
+    let required_electric = bool_cost(spec.lights, LIGHTS) + bool_cost(spec.pv, PV);
+    let required_other = bool_cost(spec.coolroof, COOLROOF);
+    let optional_architecture = bool_cost(spec.blind, BLIND);
+
+    let required_work =
+        required_architecture + required_machine + required_electric + required_other;
+    let optional_work = optional_architecture;
+
+    let architecture_side_work = (required_architecture + optional_architecture) * 0.095;
+    let machine_side_work = required_machine * 0.090;
+    let demolition = required_work * 0.0693;
+    let waste = (required_architecture
+        + required_machine
+        + bool_cost(spec.lights, LIGHTS)
+        + bool_cost(spec.coolroof, COOLROOF)
+        + demolition
+        + architecture_side_work
+        + machine_side_work)
+        * 0.04;
+    let side_work = architecture_side_work + machine_side_work + demolition + waste;
+
+    let direct_labor = (required_work + optional_work + side_work) * 0.5;
+    let indirect_labor = direct_labor * 0.122;
+    let expense = (required_work + optional_work + side_work + indirect_labor) * 0.058;
+    let overhead = (required_work + optional_work + side_work + indirect_labor + expense) * 0.06;
+    let profit = (direct_labor + indirect_labor + expense + overhead) * 0.15;
+
+    let construction_cost = required_work
+        + optional_work
+        + side_work
+        + direct_labor
+        + indirect_labor
+        + expense
+        + overhead
+        + profit;
+    let design_fee = construction_cost * 0.0495 * 1.5;
+    let supervision_fee = construction_cost * 0.01185;
+    let tax = construction_cost * 0.1;
+
+    ((construction_cost + design_fee + supervision_fee + tax) * area_m2).round() as u64
 }
 
-impl RetrofitCodes {
-    fn from_option(option: &RetrofitOption) -> Self {
-        Self {
-            wall: option.measures.contains(&RetrofitMeasure::Wall) as u8,
-            roof: option.measures.contains(&RetrofitMeasure::Roof) as u8,
-            floor: option.measures.contains(&RetrofitMeasure::Floor) as u8,
-            window: option.measures.contains(&RetrofitMeasure::Window) as u8,
-            cooling: option.measures.contains(&RetrofitMeasure::Cooling) as u8,
-            heating: option.measures.contains(&RetrofitMeasure::Heating) as u8,
-            hx: option.measures.contains(&RetrofitMeasure::Hx) as u8,
-            lights: option.measures.contains(&RetrofitMeasure::Lights) as u8,
-            hw_boiler: option.measures.contains(&RetrofitMeasure::HwBoiler) as u8,
-            coolroof: option.measures.contains(&RetrofitMeasure::CoolRoof) as u8,
-            blind: option.measures.contains(&RetrofitMeasure::Blind) as u8,
-            pv: option.measures.contains(&RetrofitMeasure::Pv) as u8,
-        }
+fn bool_cost(enabled: bool, cost: f64) -> f64 {
+    if enabled { cost } else { 0.0 }
+}
+
+fn validate_retrofit_spec(spec: RetrofitSpec) -> Result<(), String> {
+    if spec.wall > 2 {
+        return Err(format!(
+            "wall retrofit level must be 0-2, got {}",
+            spec.wall
+        ));
     }
+    if spec.roof > 2 {
+        return Err(format!(
+            "roof retrofit level must be 0-2, got {}",
+            spec.roof
+        ));
+    }
+    if spec.floor > 2 {
+        return Err(format!(
+            "floor retrofit level must be 0-2, got {}",
+            spec.floor
+        ));
+    }
+    if spec.window > 3 {
+        return Err(format!(
+            "window retrofit level must be 0-3, got {}",
+            spec.window
+        ));
+    }
+    Ok(())
 }
 
 fn converted_input_row(
@@ -403,16 +940,16 @@ fn converted_input_row(
     residential: bool,
     climate: u8,
     era: u8,
-    codes: &RetrofitCodes,
+    spec: &RetrofitSpec,
 ) -> Result<[f32; 18], String> {
     let thermal = reference_data.thermal_properties(
         residential,
         climate,
         era,
-        codes.wall,
-        codes.roof,
-        codes.floor,
-        codes.window,
+        spec.wall,
+        spec.roof,
+        spec.floor,
+        spec.window,
     )?;
     let mut climate_one_hot = [0.0; 4];
     let climate_index = climate as usize;
@@ -427,14 +964,14 @@ fn converted_input_row(
         thermal.floor,
         thermal.win_u_scaled,
         thermal.shgc,
-        codes.cooling as f32,
-        codes.heating as f32,
-        codes.hx as f32,
-        codes.lights as f32,
-        codes.hw_boiler as f32,
-        codes.coolroof as f32,
-        codes.blind as f32,
-        codes.pv as f32,
+        spec.cooling as u8 as f32,
+        spec.heating as u8 as f32,
+        spec.hx as u8 as f32,
+        spec.lights as u8 as f32,
+        spec.hw_boiler as u8 as f32,
+        spec.coolroof as u8 as f32,
+        spec.blind as u8 as f32,
+        spec.pv as u8 as f32,
         era as f32,
         climate_one_hot[0],
         climate_one_hot[1],
@@ -570,19 +1107,17 @@ fn inverse_standard_normal(p: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::{
-        RetrofitCodes, build_ann_inputs, converted_input_row, generate_uncertain_samples,
-        inverse_standard_normal,
+        RetrofitSpec, build_ann_inputs, converted_input_row, generate_uncertain_samples,
+        inverse_standard_normal, retrofit_cost,
     };
     use crate::domain::{EmbeddedModelStore, EstimateRequest, ReferenceData, RetrofitOption};
-    use std::collections::BTreeSet;
 
     #[test]
     fn builds_25_dimensional_ann_inputs() {
         let reference_data = ReferenceData::load().expect("reference metadata should load");
         let uncertain_samples = generate_uncertain_samples(10);
-        let converted =
-            converted_input_row(&reference_data, false, 0, 0, &RetrofitCodes::default())
-                .expect("converted row should build");
+        let converted = converted_input_row(&reference_data, false, 0, 0, &RetrofitSpec::default())
+            .expect("converted row should build");
         let inputs = build_ann_inputs(&uncertain_samples, &converted);
 
         assert_eq!(inputs.len(), 10);
@@ -602,7 +1137,7 @@ mod tests {
             options: vec![RetrofitOption {
                 id: 1,
                 label: "test".to_string(),
-                measures: BTreeSet::new(),
+                spec: RetrofitSpec::default(),
             }],
         };
 
@@ -612,5 +1147,34 @@ mod tests {
         assert_eq!(result.options.len(), 1);
         assert!(result.baseline.elec.is_finite());
         assert!(result.options[0].elec_after.is_finite());
+    }
+
+    #[test]
+    fn ports_python_retrofit_cost_formula() {
+        assert_eq!(retrofit_cost(RetrofitSpec::default(), 1000.0), 0);
+
+        let spec = RetrofitSpec {
+            wall: 2,
+            window: 1,
+            lights: true,
+            ..Default::default()
+        };
+        let cost_per_m2 = retrofit_cost(spec, 1.0);
+        let total_cost = retrofit_cost(spec, 1000.0);
+
+        assert_eq!(cost_per_m2, 614_908);
+        assert_eq!(total_cost, 614_908_244);
+    }
+
+    #[test]
+    fn generates_full_pareto_candidate_grid_without_baseline() {
+        let candidates = super::generate_pareto_candidates();
+
+        assert_eq!(candidates.len(), 27_647);
+        assert!(
+            candidates
+                .iter()
+                .all(|candidate| candidate.spec.active_count() > 0)
+        );
     }
 }

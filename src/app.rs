@@ -1,7 +1,7 @@
 use std::{
-    collections::BTreeSet,
     sync::{
         Arc,
+        atomic::{AtomicBool, Ordering},
         mpsc::{self, Receiver},
     },
     time::Duration,
@@ -10,9 +10,9 @@ use std::{
 use eframe::egui::{self, Color32, FontData, FontDefinitions, FontFamily, RichText, Stroke};
 
 use crate::domain::{
-    BUILDING_TYPES, CLIMATES, ERAS, EmbeddedModelStore, EstimateRequest, EstimateResult,
-    ParetoProgressEvent, ReferenceData, RetrofitMeasure, RetrofitOption, estimate_reduction,
-    run_preview_pareto_job,
+    BUILDING_TYPES, BinaryRetrofitMeasure, CLIMATES, ERAS, EmbeddedModelStore, EstimateRequest,
+    EstimateResult, ParetoProgressEvent, ReferenceData, RetrofitOption, RetrofitSpec,
+    estimate_reduction, run_pareto_job,
 };
 
 pub struct Co2App {
@@ -32,6 +32,7 @@ pub struct Co2App {
     progress: f32,
     progress_message: String,
     progress_rx: Option<Receiver<ParetoProgressEvent>>,
+    progress_cancel: Option<Arc<AtomicBool>>,
     is_running: bool,
 }
 
@@ -69,20 +70,22 @@ impl Co2App {
                 RetrofitOption {
                     id: 1,
                     label: "Option 1".to_string(),
-                    measures: BTreeSet::from([
-                        RetrofitMeasure::Wall,
-                        RetrofitMeasure::Window,
-                        RetrofitMeasure::Lights,
-                    ]),
+                    spec: RetrofitSpec {
+                        wall: 1,
+                        window: 1,
+                        lights: true,
+                        ..Default::default()
+                    },
                 },
                 RetrofitOption {
                     id: 2,
                     label: "Option 2".to_string(),
-                    measures: BTreeSet::from([
-                        RetrofitMeasure::Roof,
-                        RetrofitMeasure::Cooling,
-                        RetrofitMeasure::Pv,
-                    ]),
+                    spec: RetrofitSpec {
+                        roof: 1,
+                        cooling: true,
+                        pv: true,
+                        ..Default::default()
+                    },
                 },
             ],
             next_option_id: 3,
@@ -96,6 +99,7 @@ impl Co2App {
             progress: 0.0,
             progress_message: "대기".to_string(),
             progress_rx: None,
+            progress_cancel: None,
             is_running: false,
         }
     }
@@ -113,6 +117,8 @@ impl Co2App {
     fn calculate(&mut self) {
         let request = self.request();
         self.error = None;
+        self.progress_rx = None;
+        self.progress_cancel = None;
         self.progress = 0.0;
         self.progress_message = "계산 준비".to_string();
 
@@ -133,10 +139,22 @@ impl Co2App {
         match estimate {
             Ok(result) => {
                 self.result = Some(result);
-                let (sender, receiver) = mpsc::channel();
-                run_preview_pareto_job(sender);
-                self.progress_rx = Some(receiver);
-                self.is_running = true;
+                if let (Some(model_store), Some(reference_data)) =
+                    (&self.model_store, &self.reference_data)
+                {
+                    let (sender, receiver) = mpsc::channel();
+                    let cancel = Arc::new(AtomicBool::new(false));
+                    run_pareto_job(
+                        request,
+                        model_store.clone(),
+                        reference_data.clone(),
+                        sender,
+                        cancel.clone(),
+                    );
+                    self.progress_rx = Some(receiver);
+                    self.progress_cancel = Some(cancel);
+                    self.is_running = true;
+                }
             }
             Err(error) => {
                 self.error = Some(error);
@@ -145,13 +163,27 @@ impl Co2App {
         }
     }
 
+    fn cancel_calculation(&mut self) {
+        if let Some(cancel) = &self.progress_cancel {
+            cancel.store(true, Ordering::Relaxed);
+            self.progress_message = "중지 요청".to_string();
+        }
+    }
+
     fn poll_progress(&mut self, ctx: &egui::Context) {
         if let Some(receiver) = &self.progress_rx {
             while let Ok(event) = receiver.try_recv() {
                 self.progress = event.progress;
                 self.progress_message = event.message;
+                if let Some(result) = event.result {
+                    self.result = Some(result);
+                }
+                if let Some(error) = event.error {
+                    self.error = Some(error);
+                }
                 if self.progress >= 1.0 {
                     self.is_running = false;
+                    self.progress_cancel = None;
                 }
             }
         }
@@ -167,7 +199,7 @@ impl Co2App {
         self.options.push(RetrofitOption {
             id,
             label: format!("Option {}", self.options.len() + 1),
-            measures: BTreeSet::new(),
+            spec: RetrofitSpec::default(),
         });
     }
 
@@ -196,19 +228,16 @@ impl eframe::App for Co2App {
                     );
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let label = if self.is_running {
-                        "계산 중"
-                    } else {
-                        "계산"
-                    };
+                    let label = if self.is_running { "중지" } else { "계산" };
                     if ui
-                        .add_enabled(
-                            !self.is_running,
-                            egui::Button::new(label).min_size([92.0, 38.0].into()),
-                        )
+                        .add(egui::Button::new(label).min_size([92.0, 38.0].into()))
                         .clicked()
                     {
-                        self.calculate();
+                        if self.is_running {
+                            self.cancel_calculation();
+                        } else {
+                            self.calculate();
+                        }
                     }
                 });
             });
@@ -315,16 +344,28 @@ impl Co2App {
                     });
 
                     ui.add_space(8.0);
-                    for chunk in RetrofitMeasure::ALL.chunks(3) {
+                    ui.label(
+                        RichText::new("외피")
+                            .strong()
+                            .color(Color32::from_rgb(82, 97, 100)),
+                    );
+                    level_combo(ui, "벽체", &mut option.spec.wall, &ENVELOPE_LEVELS);
+                    level_combo(ui, "지붕", &mut option.spec.roof, &ENVELOPE_LEVELS);
+                    level_combo(ui, "바닥", &mut option.spec.floor, &ENVELOPE_LEVELS);
+                    level_combo(ui, "창호", &mut option.spec.window, &WINDOW_LEVELS);
+
+                    ui.add_space(8.0);
+                    ui.label(
+                        RichText::new("설비/전기/기타")
+                            .strong()
+                            .color(Color32::from_rgb(82, 97, 100)),
+                    );
+                    for chunk in BinaryRetrofitMeasure::ALL.chunks(4) {
                         ui.horizontal(|ui| {
                             for measure in chunk {
-                                let mut enabled = option.measures.contains(measure);
+                                let mut enabled = option.spec.is_enabled(*measure);
                                 if ui.checkbox(&mut enabled, measure.label()).changed() {
-                                    if enabled {
-                                        option.measures.insert(*measure);
-                                    } else {
-                                        option.measures.remove(measure);
-                                    }
+                                    option.spec.set_enabled(*measure, enabled);
                                 }
                             }
                         });
@@ -550,6 +591,29 @@ fn labeled_combo<'a>(
             }
         });
     ui.add_space(8.0);
+}
+
+const ENVELOPE_LEVELS: [(u8, &str); 3] = [(0, "기존"), (1, "현행"), (2, "강화")];
+const WINDOW_LEVELS: [(u8, &str); 4] = [(0, "기존"), (1, "창호1"), (2, "창호2"), (3, "창호3")];
+
+fn level_combo(ui: &mut egui::Ui, label: &str, selected: &mut u8, levels: &[(u8, &str)]) {
+    let selected_text = levels
+        .iter()
+        .find(|(value, _)| value == selected)
+        .map(|(_, label)| *label)
+        .unwrap_or("기존");
+
+    ui.horizontal(|ui| {
+        ui.label(label);
+        egui::ComboBox::from_id_salt((label, selected as *const u8 as usize))
+            .selected_text(selected_text)
+            .width(96.0)
+            .show_ui(ui, |ui| {
+                for (value, item_label) in levels {
+                    ui.selectable_value(selected, *value, *item_label);
+                }
+            });
+    });
 }
 
 fn kpi_cell(ui: &mut egui::Ui, label: &str, value: Option<f64>) {

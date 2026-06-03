@@ -6,7 +6,7 @@ const MODEL_BYTES: &[u8] =
     include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/models.c2m"));
 const MAGIC: &[u8; 4] = b"C2M1";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EmbeddedModelStore {
     models: BTreeMap<String, MlpModel>,
     total_params: usize,

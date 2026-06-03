@@ -5,8 +5,8 @@ pub mod reference_data;
 pub mod uncertainty;
 
 pub use coefficients::{
-    BUILDING_TYPES, CLIMATES, ERAS, EstimateRequest, EstimateResult, ParetoProgressEvent,
-    RetrofitMeasure, RetrofitOption, estimate_reduction, run_preview_pareto_job,
+    BUILDING_TYPES, BinaryRetrofitMeasure, CLIMATES, ERAS, EstimateRequest, EstimateResult,
+    ParetoProgressEvent, RetrofitOption, RetrofitSpec, estimate_reduction, run_pareto_job,
 };
 pub use model_store::EmbeddedModelStore;
 pub use reference_data::ReferenceData;

@@ -44,8 +44,8 @@ Last updated: 2026-06-03
 
 ## Current Implementation Baseline
 
-- `src/app.rs`: egui dashboard skeleton with dynamic comparison options, progress display, embedded Korean font support, and live ANN-backed calculation.
-- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, Python-style `_1/_2` sample split, and CO2 summaries.
+- `src/app.rs`: egui dashboard skeleton with dynamic comparison options, level-based ECM controls, progress display, cancellation, embedded Korean font support, and live ANN-backed calculation.
+- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, Python-style `_1/_2` sample split, CO2 summaries, Python-reference retrofit costs, and staged Pareto search.
 - `src/domain/mlp.rs`: custom Dense MLP forward pass with parallel batch prediction.
 - `src/domain/model_store.rs`: embedded compact model asset loader.
 - `src/domain/uncertainty.rs`: empirical distribution summary and smoothed histogram data.
@@ -58,7 +58,8 @@ Last updated: 2026-06-03
 - `scripts/extract_models.py`: developer-side H5 to compact model asset extraction.
 - `scripts/extract_reference_assets.py`: developer-side reference CSV normalization.
 - `.github/workflows/ci.yml`: main push/PR checks.
-- `.github/workflows/release.yml`: automatic GitHub Release for Windows exe.
+- `.github/workflows/release.yml`: automatic GitHub Release for Windows exe using tag-specific release notes.
+- `docs/release-notes/`: managed GitHub Release notes by tag.
 
 ## Model Asset Notes
 
@@ -72,9 +73,9 @@ Last updated: 2026-06-03
 
 ## Current Limitations
 
-- UI retrofit inputs are still boolean toggles. The Python lookup supports multi-level wall/roof/floor/window options, so the UI should expose those levels next.
-- Retrofit cost is still a simplified placeholder and needs the detailed constants/branches from `post_simulation.py`.
-- Pareto progress is still a staged preview job; real cancellable Pareto search is pending.
+- Long Pareto option labels need a more polished result presentation.
+- Pareto dominance currently uses point estimates from staged sample counts; uncertainty-band dominance still needs a richer sample-distribution result type.
+- The Excel dashboard layout still needs deliberate visual matching once the large workbook can be inspected safely.
 
 ## Official References Checked
 

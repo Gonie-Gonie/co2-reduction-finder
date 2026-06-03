@@ -125,5 +125,3 @@ Important: step 2 is sample splitting, not value blending. Python computes `mode
 - The Excel dashboard layout still needs to be inspected carefully. Because the file is larger than 1GB, do not open it casually in automation.
 - Need confirm whether final deliverable means raw portable app `.exe`, NSIS setup `.exe`, or both.
 - Need choose the statistical dominance rule for staged Pareto filtering.
-- Need expose multi-level ECM choices in UI instead of reducing every selected measure to option code `1`.
-- Need port exact retrofit cost rules from `post_simulation.py`.

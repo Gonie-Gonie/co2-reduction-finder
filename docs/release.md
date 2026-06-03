@@ -17,8 +17,8 @@ The release executable is generated at `target/release/co2-reduction-finder.exe`
 Push a version tag:
 
 ```powershell
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 The workflow performs:
@@ -27,11 +27,16 @@ The workflow performs:
 2. Run `cargo check`.
 3. Run `cargo test`.
 4. Run `cargo build --release`.
-5. Upload `co2-reduction-finder-<tag>-windows-x64.exe` to GitHub Release.
+5. Read `docs/release-notes/<tag>.md` when present.
+6. Upload `co2-reduction-finder-<tag>-windows-x64.exe` to GitHub Release.
 
 ## Manual Release
 
-The `release` workflow can also be run manually from GitHub Actions. Enter `0.1.4` as the `version` input to create or update release tag `v0.1.4`.
+The `release` workflow can also be run manually from GitHub Actions. Enter `0.1.5` as the `version` input to create or update release tag `v0.1.5`.
+
+## Release Notes
+
+Release notes live under `docs/release-notes/` by tag name. Add `docs/release-notes/vX.Y.Z.md` before pushing `vX.Y.Z`.
 
 ## Tauri Track
 
