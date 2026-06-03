@@ -1,0 +1,115 @@
+# Reference Analysis
+
+This memo captures what has been learned from `.reference/pyScript` and `.reference/pyCO2module` without committing the reference data itself.
+
+## Files Read
+
+- `.reference/pyScript/02_train_ann.py`
+- `.reference/pyScript/03_calculate_coefficients.py`
+- `.reference/pyScript/04_integrated_coeffs.py`
+- `.reference/pyCO2module/post_simulation.py`
+- `.reference/pyCO2module/info.csv`
+- `.reference/pyCO2module/Umap.csv`
+- `.reference/pyCO2module/buildings_and_ECMs.csv`
+- `.reference/pyScript/integrated_summary.csv`
+- `.reference/pyScript/integrated_lookuptable.csv`
+
+## ANN Shape
+
+- Training builds Keras Sequential MLP models.
+- Input dimension: 25.
+- Output dimension: 2.
+- Outputs are `gas` and `elec`.
+- Hidden activation: `elu`.
+- Output activation: linear.
+- Optimizer/loss are training-only and should not be needed for inference.
+- Each coefficient row is evaluated against uncertain samples, default 1000 samples.
+- The existing Excel workflow mainly uses the resulting mean/std as a normal distribution approximation.
+- The app can preserve the actual empirical sample distribution and visualize it after smoothing.
+
+## ANN Input Order
+
+The coefficient generation path concatenates uncertain variables with converted building/ECM variables. The expected 25 input order is:
+
+1. `people`
+2. `equip`
+3. `htgset`
+4. `clgset`
+5. `wwr`
+6. `HW`
+7. `infil`
+8. `wall`
+9. `roof`
+10. `floor`
+11. `winU`
+12. `SHGC`
+13. `cooling`
+14. `heating`
+15. `HX`
+16. `lights`
+17. `HWBoiler`
+18. `coolroof`
+19. `blind`
+20. `PV`
+21. `era`
+22. `clm_0`
+23. `clm_1`
+24. `clm_2`
+25. `clm_3`
+
+## Existing Lookup Generation
+
+- `generate_possible_inputs()` creates all combinations:
+  - climate: 4
+  - era: 6
+  - wall/roof/floor: 3 each
+  - window: 4
+  - cooling/heating/HX/lights/HWBoiler/coolroof/blind/PV: 2 each
+- Block size per climate/era: `3 * 3 * 3 * 4 * 2^8 = 27,648`.
+- Total rows per building type DB: `4 * 6 * 27,648 = 663,552`.
+- `03_calculate_coefficients.py` loops model type pairs and writes one large CSV DB per type.
+- The new app should avoid carrying these expanded rows.
+
+## Coefficient Calculation Flow
+
+For each building type:
+
+1. Load two models, e.g. `Office_1.h5` and `Office_2.h5`.
+2. Use `info.csv` `weights` for the `_1` model to split the uncertain samples between model 1 and model 2.
+3. Generate uncertain samples with LHS, default 1000 samples.
+4. For each ECM combination row, repeat the converted row for all uncertain samples.
+5. Predict gas/elec after retrofit.
+6. At the first row of each climate/era block, save the no-retrofit prediction as `before`.
+7. Compute delta, energy, CO2, variance-derived sigma values.
+8. Add retrofit cost by ECM option.
+
+## Distribution Handling
+
+- Do not discard the raw sample-level outputs too early.
+- Persist enough per-option sample values to draw empirical distributions for gas, electricity, energy, and CO2.
+- UI smoothing should be visual-only; summary statistics should be computed from unsmoothed samples.
+- Candidate comparison should use uncertainty-aware dominance, not only point estimates.
+
+## Pareto Efficiency Notes
+
+- Full evaluation is expensive because every candidate implies `sample_count * two-model split` inference.
+- Use parallel batch inference in Rust for MLP forward passes.
+- First pass can use about 50 samples to reject clearly dominated or statistically implausible candidates.
+- Re-evaluate surviving candidates with larger samples.
+- Final reported Pareto candidates should be recomputed with the full 1000 samples or a user-selected precision level.
+
+## Constants To Port
+
+- CO2 coefficients:
+  - electricity: `0.45941 kgCO2/kWh`
+  - gas: `0.20245 kgCO2/kWh`
+- Retrofit unit cost constants in `post_simulation.py` should move into Rust data/config.
+- U-value/SHGC lookup comes from `Umap.csv`.
+- Building type labels and model split weights come from `info.csv`.
+
+## Open Questions
+
+- The Excel dashboard layout still needs to be inspected carefully. Because the file is larger than 1GB, do not open it casually in automation.
+- H5 structure still needs extraction. The expected next artifact is a compact JSON/binary model format containing dense weights, biases, layer activations, input order, and model metadata.
+- Need confirm whether final deliverable means raw portable app `.exe`, NSIS setup `.exe`, or both.
+- Need choose the statistical dominance rule for staged Pareto filtering.

@@ -1,0 +1,64 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without v prefix, e.g. 0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: meta
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          } else {
+            "tag=v${{ inputs.version }}" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Setup Rust
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.96.0 --profile default --component rustfmt clippy
+          rustup default 1.96.0
+
+      - name: Cargo check
+        run: cargo check
+
+      - name: Rust tests
+        run: cargo test
+
+      - name: Build release exe
+        run: cargo build --release
+
+      - name: Publish Windows exe
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.meta.outputs.tag }}"
+          $asset = "target/release/co2-reduction-finder.exe"
+          $name = "co2-reduction-finder-$tag-windows-x64.exe"
+          Copy-Item $asset $name
+          if (gh release view $tag *> $null) {
+            gh release upload $tag $name --clobber
+          } else {
+            gh release create $tag $name --title "CO2 Reduction Finder $tag" --notes "Windows native Rust GUI executable build."
+          }
+
