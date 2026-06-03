@@ -18,6 +18,7 @@ const DEFAULT_SAMPLE_COUNT: usize = 1000;
 pub struct BuildingType {
     pub code: &'static str,
     pub label: &'static str,
+    #[allow(dead_code)]
     pub residential: bool,
 }
 
@@ -149,7 +150,7 @@ impl RetrofitSpec {
         }
 
         if parts.is_empty() {
-            "기준".to_string()
+            "-".to_string()
         } else {
             parts.join(" ")
         }

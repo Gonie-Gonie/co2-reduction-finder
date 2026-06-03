@@ -46,6 +46,9 @@ public class Co2SmokeCaptureNative {
     [DllImport("user32.dll")]
     public static extern bool SetForegroundWindow(IntPtr hWnd);
 
+    [DllImport("user32.dll")]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
+
     [DllImport("dwmapi.dll")]
     public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out RECT rect, int attributeSize);
 }
@@ -69,6 +72,7 @@ try {
 
     [Co2SmokeCaptureNative]::MoveWindow($handle, $X, $Y, $Width, $Height, $true) | Out-Null
     [Co2SmokeCaptureNative]::SetForegroundWindow($handle) | Out-Null
+    [Co2SmokeCaptureNative]::SetWindowPos($handle, [IntPtr](-1), 0, 0, 0, 0, 0x0001 -bor 0x0002 -bor 0x0040) | Out-Null
     Start-Sleep -Seconds $DelaySeconds
 
     $rect = New-Object Co2SmokeCaptureNative+RECT
@@ -94,6 +98,9 @@ try {
     Write-Output "Captured $captureWidth x $captureHeight to $output"
 }
 finally {
+    if ($handle -and $handle -ne [IntPtr]::Zero) {
+        [Co2SmokeCaptureNative]::SetWindowPos($handle, [IntPtr](-2), 0, 0, 0, 0, 0x0001 -bor 0x0002 -bor 0x0040) | Out-Null
+    }
     if ($process -and -not $process.HasExited) {
         $process.CloseMainWindow() | Out-Null
         Start-Sleep -Milliseconds 500

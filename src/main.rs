@@ -6,8 +6,8 @@ mod domain;
 fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size([1280.0, 820.0])
-            .with_min_inner_size([980.0, 720.0]),
+            .with_inner_size([1400.0, 980.0])
+            .with_min_inner_size([1100.0, 820.0]),
         ..Default::default()
     };
 

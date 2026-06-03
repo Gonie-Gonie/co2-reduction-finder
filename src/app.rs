@@ -28,9 +28,10 @@ enum DashboardTab {
 pub struct Co2App {
     selected_building: usize,
     selected_climate: usize,
-    selected_era: usize,
+    construction_year: i32,
     selected_metric: EnergyMetric,
     area_m2: f64,
+    area_input: String,
     options: Vec<RetrofitOption>,
     next_option_id: u64,
     active_tab: DashboardTab,
@@ -63,9 +64,10 @@ impl Co2App {
         let mut app = Self {
             selected_building: 3,
             selected_climate: 0,
-            selected_era: 2,
+            construction_year: 2004,
             selected_metric: EnergyMetric::Electricity,
             area_m2: 1000.0,
+            area_input: "1000.0".to_string(),
             options: vec![
                 RetrofitOption {
                     id: 1,
@@ -113,7 +115,9 @@ impl Co2App {
         EstimateRequest {
             building_type: BUILDING_TYPES[self.selected_building].code.to_string(),
             climate: CLIMATES[self.selected_climate].code.to_string(),
-            era: ERAS[self.selected_era].code.to_string(),
+            era: ERAS[era_index_for_year(self.construction_year)]
+                .code
+                .to_string(),
             area_m2: self.area_m2,
             metric: self.selected_metric,
             options,
@@ -131,7 +135,7 @@ impl Co2App {
             "{}|{}|{}|{:.3}|{}",
             self.selected_building,
             self.selected_climate,
-            self.selected_era,
+            self.construction_year,
             self.area_m2,
             option_sig
         )
@@ -140,7 +144,7 @@ impl Co2App {
     fn pareto_context_signature(&self) -> String {
         format!(
             "{}|{}|{}|{:.3}",
-            self.selected_building, self.selected_climate, self.selected_era, self.area_m2
+            self.selected_building, self.selected_climate, self.construction_year, self.area_m2
         )
     }
 
@@ -274,6 +278,11 @@ impl Co2App {
         self.options.push(option);
     }
 
+    fn set_area_m2(&mut self, value: f64) {
+        self.area_m2 = value.clamp(1.0, 10_000_000.0);
+        self.area_input = format_area_input(self.area_m2);
+    }
+
     fn pareto_result_for_metric(&self) -> Option<&EstimateResult> {
         self.pareto_results
             .as_ref()
@@ -324,7 +333,7 @@ impl Co2App {
     fn input_area_ui(&mut self, ui: &mut egui::Ui) {
         ui.add_space(10.0);
         ui.horizontal_top(|ui| {
-            ui.set_min_height(270.0);
+            ui.set_min_height(340.0);
             ui.vertical(|ui| {
                 ui.set_width(340.0);
                 self.building_info_ui(ui);
@@ -349,13 +358,6 @@ impl Co2App {
             &mut self.selected_building,
             BUILDING_TYPES.iter().map(|item| item.label),
         );
-        let selected_type = BUILDING_TYPES[self.selected_building];
-        ui.label(if selected_type.residential {
-            "주거"
-        } else {
-            "비주거"
-        });
-        ui.add_space(8.0);
         labeled_combo(
             ui,
             "기후권",
@@ -363,13 +365,23 @@ impl Co2App {
             &mut self.selected_climate,
             CLIMATES.iter().map(|item| item.label),
         );
-        labeled_combo(
-            ui,
-            "준공연도",
-            "era-band",
-            &mut self.selected_era,
-            ERAS.iter().map(|item| item.label),
+        ui.label(
+            RichText::new("준공연도")
+                .strong()
+                .color(Color32::from_rgb(82, 97, 100)),
         );
+        let year_changed = ui
+            .add(
+                egui::Slider::new(&mut self.construction_year, 1960..=2026)
+                    .integer()
+                    .show_value(true),
+            )
+            .changed();
+        let era = ERAS[era_index_for_year(self.construction_year)];
+        ui.small(RichText::new(format!("적용 구간: {}", era.label)).color(MUTED_TEXT));
+        if year_changed {
+            self.construction_year = self.construction_year.clamp(1960, 2026);
+        }
 
         ui.add_space(8.0);
         ui.label(
@@ -377,18 +389,41 @@ impl Co2App {
                 .strong()
                 .color(Color32::from_rgb(82, 97, 100)),
         );
-        ui.add(
-            egui::DragValue::new(&mut self.area_m2)
-                .speed(10.0)
-                .range(1.0..=10_000_000.0)
-                .fixed_decimals(1),
-        );
+        ui.horizontal(|ui| {
+            let response = ui.add(
+                egui::TextEdit::singleline(&mut self.area_input)
+                    .desired_width(96.0)
+                    .horizontal_align(egui::Align::RIGHT),
+            );
+            if response.changed() {
+                if let Some(value) = parse_area_input(&self.area_input) {
+                    self.area_m2 = value;
+                }
+            }
+            if square_icon_button(ui, "-", "100 m2 감소", true).clicked() {
+                self.set_area_m2(self.area_m2 - 100.0);
+            }
+            if square_icon_button(ui, "+", "100 m2 증가", true).clicked() {
+                self.set_area_m2(self.area_m2 + 100.0);
+            }
+        });
+        let mut area_slider = self.area_m2;
+        if ui
+            .add(
+                egui::Slider::new(&mut area_slider, 1.0..=10_000_000.0)
+                    .logarithmic(true)
+                    .show_value(false),
+            )
+            .changed()
+        {
+            self.set_area_m2(area_slider);
+        }
     }
 
     fn comparison_options_ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            section_header(ui, "비교안");
-            if ui.button("+").on_hover_text("비교안 추가").clicked() {
+            section_header(ui, "리모델링 대안");
+            if ui.button("+").on_hover_text("리모델링 대안 추가").clicked() {
                 self.add_option();
             }
         });
@@ -407,28 +442,21 @@ impl Co2App {
                 egui::ScrollArea::horizontal().show(ui, |ui| {
                     egui::Grid::new("option-input-table")
                         .striped(true)
-                        .min_col_width(96.0)
+                        .min_col_width(138.0)
                         .show(ui, |ui| {
                             ui.strong("항목");
-                            for option in &mut self.options {
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut option.label)
-                                        .desired_width(104.0),
-                                );
-                            }
-                            ui.end_row();
-
-                            ui.label("");
                             for index in 0..self.options.len() {
-                                ui.horizontal(|ui| {
-                                    if ui.small_button("Copy").clicked() {
+                                let option = &mut self.options[index];
+                                ui.horizontal_centered(|ui| {
+                                    ui.add(
+                                        egui::TextEdit::singleline(&mut option.label)
+                                            .desired_width(74.0),
+                                    );
+                                    if copy_icon_button(ui, true).clicked() {
                                         duplicate_index = Some(index);
                                     }
-                                    if ui
-                                        .add_enabled(can_remove, egui::Button::new("Del").small())
-                                        .clicked()
-                                    {
-                                        remove_id = Some(self.options[index].id);
+                                    if delete_icon_button(ui, can_remove).clicked() {
+                                        remove_id = Some(option.id);
                                     }
                                 });
                             }
@@ -679,6 +707,7 @@ impl Co2App {
                 result,
                 self.selected_metric,
                 self.area_m2,
+                true,
             );
         } else {
             let message = if self.is_running {
@@ -733,7 +762,7 @@ impl Co2App {
                                 numeric_header(ui, &format!("후 [{}]", factor.unit), 92.0);
                                 numeric_header(ui, &format!("감축 [{}]", factor.unit), 104.0);
                                 numeric_header(ui, "감축률", 76.0);
-                                numeric_header(ui, "표준편차", 88.0);
+                                numeric_header(ui, &format!("표준편차 [{}]", factor.unit), 104.0);
                                 numeric_header(ui, "공사비", 112.0);
                                 ui.end_row();
 
@@ -753,7 +782,7 @@ impl Co2App {
                                     numeric_cell(ui, "-", 92.0);
                                     numeric_cell(ui, "-", 104.0);
                                     numeric_cell(ui, "-", 76.0);
-                                    numeric_cell(ui, format_number(before_std), 88.0);
+                                    numeric_cell(ui, format_number(before_std), 104.0);
                                     numeric_cell(ui, "-", 112.0);
                                     ui.end_row();
 
@@ -772,7 +801,7 @@ impl Co2App {
                                     numeric_cell(ui, "-", 92.0);
                                     numeric_cell(ui, "-", 104.0);
                                     numeric_cell(ui, "-", 76.0);
-                                    numeric_cell(ui, "-", 88.0);
+                                    numeric_cell(ui, "-", 104.0);
                                     numeric_cell(ui, "-", 112.0);
                                     ui.end_row();
                                 }
@@ -995,6 +1024,67 @@ fn tab_button(ui: &mut egui::Ui, selected: &mut DashboardTab, value: DashboardTa
     }
 }
 
+fn square_icon_button(
+    ui: &mut egui::Ui,
+    icon: &str,
+    tooltip: &str,
+    enabled: bool,
+) -> egui::Response {
+    ui.add_enabled(
+        enabled,
+        egui::Button::new(RichText::new(icon).size(13.0))
+            .min_size(Vec2::splat(24.0))
+            .frame(true),
+    )
+    .on_hover_text(tooltip)
+}
+
+fn copy_icon_button(ui: &mut egui::Ui, enabled: bool) -> egui::Response {
+    let response = ui
+        .add_enabled(
+            enabled,
+            egui::Button::new("")
+                .min_size(Vec2::splat(24.0))
+                .frame(true),
+        )
+        .on_hover_text("대안 복제");
+    if ui.is_rect_visible(response.rect) {
+        let stroke = Stroke::new(1.2, TEXT_COLOR);
+        let back = Rect::from_min_size(
+            response.rect.center() + Vec2::new(-5.0, -6.0),
+            Vec2::new(8.0, 8.0),
+        );
+        let front = back.translate(Vec2::new(3.0, 3.0));
+        ui.painter()
+            .rect_stroke(back, 1.0, stroke, egui::StrokeKind::Inside);
+        ui.painter()
+            .rect_stroke(front, 1.0, stroke, egui::StrokeKind::Inside);
+    }
+    response
+}
+
+fn delete_icon_button(ui: &mut egui::Ui, enabled: bool) -> egui::Response {
+    let response = ui
+        .add_enabled(
+            enabled,
+            egui::Button::new("")
+                .min_size(Vec2::splat(24.0))
+                .frame(true),
+        )
+        .on_hover_text("대안 삭제");
+    if ui.is_rect_visible(response.rect) {
+        let stroke = Stroke::new(1.4, TEXT_COLOR);
+        let center = response.rect.center();
+        let a = Vec2::new(4.5, 4.5);
+        ui.painter().line_segment([center - a, center + a], stroke);
+        ui.painter().line_segment(
+            [center + Vec2::new(-a.x, a.y), center + Vec2::new(a.x, -a.y)],
+            stroke,
+        );
+    }
+    response
+}
+
 fn numeric_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     let text = text.into();
     ui.allocate_ui_with_layout(
@@ -1015,6 +1105,34 @@ fn numeric_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
             ui.strong(text);
         },
     );
+}
+
+fn parse_area_input(input: &str) -> Option<f64> {
+    let value = input.trim().replace(',', "").parse::<f64>().ok()?;
+    if value.is_finite() && value > 0.0 {
+        Some(value.clamp(1.0, 10_000_000.0))
+    } else {
+        None
+    }
+}
+
+fn format_area_input(value: f64) -> String {
+    if value >= 1000.0 {
+        format!("{value:.0}")
+    } else {
+        format!("{value:.1}")
+    }
+}
+
+fn era_index_for_year(year: i32) -> usize {
+    match year {
+        ..=1986 => 0,
+        1987..=2000 => 1,
+        2001..=2007 => 2,
+        2008..=2009 => 3,
+        2010..=2012 => 4,
+        _ => 5,
+    }
 }
 
 fn density_chart(
@@ -1413,25 +1531,109 @@ fn scatter_chart(
             &format!("감축량 [{}]", reduction_scale.unit),
         );
 
-        for item in &result.options {
-            let x_value = (item.cost as f64 / 10_000.0) / cost_scale.divisor;
-            let y_value = metric_display_value(metric, item.reduction.mean, area_m2)
-                / reduction_scale.divisor;
-            let point = Pos2::new(map_x(plot, x_axis, x_value), map_y(plot, y_axis, y_value));
-            painter.circle_filled(point, 4.5, ACCENT);
-            let label_pos = Pos2::new(
-                (point.x + 6.0).min(plot.right() - 6.0),
-                (point.y - 6.0).max(plot.top() + 6.0),
-            );
-            painter.text(
-                label_pos,
-                Align2::LEFT_CENTER,
-                short_label(&item.label, 12),
-                egui::FontId::proportional(11.0),
-                TEXT_COLOR,
-            );
+        let mut points = result
+            .options
+            .iter()
+            .enumerate()
+            .map(|(index, item)| {
+                let x_value = (item.cost as f64 / 10_000.0) / cost_scale.divisor;
+                let y_value = metric_display_value(metric, item.reduction.mean, area_m2)
+                    / reduction_scale.divisor;
+                let point = Pos2::new(map_x(plot, x_axis, x_value), map_y(plot, y_axis, y_value));
+                (index, item, point)
+            })
+            .collect::<Vec<_>>();
+        points.sort_by(|(_, a, _), (_, b, _)| a.cost.cmp(&b.cost));
+
+        if points.len() >= 2 {
+            painter.add(Shape::line(
+                points.iter().map(|(_, _, point)| *point).collect(),
+                Stroke::new(1.6, Color32::from_rgb(92, 154, 151)),
+            ));
+        }
+
+        for (_, _, point) in &points {
+            painter.circle_filled(*point, 4.5, ACCENT);
+            painter.circle_stroke(*point, 4.5, Stroke::new(1.0, Color32::WHITE));
+        }
+
+        let mut used_label_rects = Vec::new();
+        for (index, item, point) in &points {
+            let label = pareto_point_label(&item.label, *index);
+            if let Some(label_rect) =
+                scatter_label_rect(*point, &label, rect, plot, &used_label_rects)
+            {
+                painter.rect_filled(label_rect, 3.0, Color32::from_white_alpha(238));
+                painter.rect_stroke(
+                    label_rect,
+                    3.0,
+                    Stroke::new(1.0, Color32::from_rgb(196, 211, 212)),
+                    egui::StrokeKind::Inside,
+                );
+                painter.text(
+                    label_rect.center(),
+                    Align2::CENTER_CENTER,
+                    label,
+                    egui::FontId::proportional(10.5),
+                    TEXT_COLOR,
+                );
+                used_label_rects.push(label_rect);
+            }
         }
     });
+}
+
+fn pareto_point_label(label: &str, fallback_index: usize) -> String {
+    label
+        .split(':')
+        .next()
+        .and_then(|prefix| prefix.strip_prefix("Pareto "))
+        .map(|number| format!("P{}", number.trim()))
+        .unwrap_or_else(|| format!("P{}", fallback_index + 1))
+}
+
+fn scatter_label_rect(
+    point: Pos2,
+    label: &str,
+    chart_rect: Rect,
+    plot: Rect,
+    used_rects: &[Rect],
+) -> Option<Rect> {
+    let width = (label.chars().count() as f32 * 7.0 + 14.0).max(26.0);
+    let size = Vec2::new(width, 18.0);
+    let bounds = Rect::from_min_max(
+        Pos2::new(plot.left(), chart_rect.top() + 8.0),
+        Pos2::new(plot.right(), plot.bottom() - 2.0),
+    );
+    let offsets = [
+        Vec2::new(8.0, -26.0),
+        Vec2::new(8.0, 8.0),
+        Vec2::new(-width - 8.0, -26.0),
+        Vec2::new(-width - 8.0, 8.0),
+        Vec2::new(-width / 2.0, -34.0),
+        Vec2::new(-width / 2.0, 14.0),
+    ];
+
+    for offset in offsets {
+        let rect = Rect::from_min_size(point + offset, size);
+        if rect_inside(bounds, rect) && !used_rects.iter().any(|used| rects_intersect(*used, rect))
+        {
+            return Some(rect);
+        }
+    }
+
+    None
+}
+
+fn rect_inside(bounds: Rect, rect: Rect) -> bool {
+    rect.left() >= bounds.left()
+        && rect.right() <= bounds.right()
+        && rect.top() >= bounds.top()
+        && rect.bottom() <= bounds.bottom()
+}
+
+fn rects_intersect(a: Rect, b: Rect) -> bool {
+    a.left() < b.right() && a.right() > b.left() && a.top() < b.bottom() && a.bottom() > b.top()
 }
 
 fn empty_chart(ui: &mut egui::Ui, id: &str, message: &str) {
@@ -1456,6 +1658,7 @@ fn result_table(
     result: &EstimateResult,
     metric: EnergyMetric,
     area_m2: f64,
+    include_incremental: bool,
 ) {
     let factor = metric.factor();
     egui::ScrollArea::horizontal()
@@ -1470,13 +1673,43 @@ fn result_table(
                     numeric_header(ui, &format!("후 [{}]", factor.unit), 92.0);
                     numeric_header(ui, &format!("감축 [{}]", factor.unit), 104.0);
                     numeric_header(ui, "감축률", 76.0);
-                    numeric_header(ui, "표준편차", 88.0);
+                    numeric_header(ui, &format!("표준편차 [{}]", factor.unit), 104.0);
                     numeric_header(ui, "공사비", 112.0);
+                    if include_incremental {
+                        numeric_header(ui, &format!("추가효용 [{}]", factor.unit), 116.0);
+                        numeric_header(ui, "추가비용", 112.0);
+                    }
                     ui.end_row();
 
                     let before = metric_display_value(metric, result.baseline.mean, area_m2);
+                    let mut previous_reduction = None;
+                    let mut previous_cost = None;
                     for item in &result.options {
-                        option_row(ui, item, before, metric, area_m2, true);
+                        let reduction = metric_display_value(metric, item.reduction.mean, area_m2);
+                        let incremental = if include_incremental {
+                            previous_reduction.zip(previous_cost).map(
+                                |(prev_reduction, prev_cost)| {
+                                    (
+                                        reduction - prev_reduction,
+                                        item.cost as i64 - prev_cost as i64,
+                                    )
+                                },
+                            )
+                        } else {
+                            None
+                        };
+                        option_row(
+                            ui,
+                            item,
+                            before,
+                            metric,
+                            area_m2,
+                            true,
+                            include_incremental,
+                            incremental,
+                        );
+                        previous_reduction = Some(reduction);
+                        previous_cost = Some(item.cost);
                     }
                 });
         });
@@ -1489,6 +1722,8 @@ fn option_row(
     metric: EnergyMetric,
     area_m2: f64,
     full: bool,
+    show_incremental: bool,
+    incremental: Option<(f64, i64)>,
 ) {
     let after = metric_display_value(metric, item.after.mean, area_m2);
     let reduction = metric_display_value(metric, item.reduction.mean, area_m2);
@@ -1503,8 +1738,17 @@ fn option_row(
         numeric_cell(ui, format_number(after), 92.0);
         numeric_cell(ui, format_number(reduction), 104.0);
         numeric_cell(ui, format_percent(rate), 76.0);
-        numeric_cell(ui, format_number(std), 88.0);
+        numeric_cell(ui, format_number(std), 104.0);
         numeric_cell(ui, format_cost(item.cost), 112.0);
+        if show_incremental {
+            if let Some((additional_utility, additional_cost)) = incremental {
+                numeric_cell(ui, format_number(additional_utility), 116.0);
+                numeric_cell(ui, format_cost_delta(additional_cost), 112.0);
+            } else {
+                numeric_cell(ui, "-", 116.0);
+                numeric_cell(ui, "-", 112.0);
+            }
+        }
     } else {
         numeric_cell(ui, format_number(reduction), 104.0);
         numeric_cell(ui, format_percent(rate), 76.0);
@@ -1532,7 +1776,7 @@ fn summary_option_row(
     numeric_cell(ui, format_number(after), 92.0);
     numeric_cell(ui, format_number(reduction), 104.0);
     numeric_cell(ui, format_percent(rate), 76.0);
-    numeric_cell(ui, format_number(std), 88.0);
+    numeric_cell(ui, format_number(std), 104.0);
     numeric_cell(ui, format_cost(item.cost), 112.0);
     ui.end_row();
 }
@@ -1819,6 +2063,12 @@ fn format_cost(cost: u64) -> String {
     )
 }
 
+fn format_cost_delta(cost_delta: i64) -> String {
+    let sign = if cost_delta < 0 { "-" } else { "" };
+    let value = (cost_delta.unsigned_abs() as f64) / 10_000.0;
+    format!("{sign}{} 만원", format_number_with_commas(value, 0))
+}
+
 fn format_number_with_commas(value: f64, decimals: usize) -> String {
     let formatted = format!("{value:.decimals$}");
     let (integer, fractional) = formatted
@@ -1866,21 +2116,48 @@ fn option_level_row(
     ui.strong(label);
     for option in options {
         let selected = selector(&mut option.spec);
-        let selected_text = levels
-            .iter()
-            .find(|(value, _)| value == selected)
-            .map(|(_, label)| *label)
-            .unwrap_or("기존");
-        egui::ComboBox::from_id_salt((row_id, option.id))
-            .selected_text(selected_text)
-            .width(84.0)
-            .show_ui(ui, |ui| {
-                for (value, item_label) in levels {
-                    ui.selectable_value(selected, *value, *item_label);
-                }
-            });
+        level_toggle_group(ui, (row_id, option.id), selected, levels);
     }
     ui.end_row();
+}
+
+fn level_toggle_group(
+    ui: &mut egui::Ui,
+    id: (&str, u64),
+    selected: &mut u8,
+    levels: &[(u8, &str)],
+) {
+    ui.push_id(id, |ui| {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 3.0;
+            for (value, item_label) in levels {
+                let is_selected = *selected == *value;
+                let text = if is_selected {
+                    RichText::new(*item_label).strong().color(Color32::WHITE)
+                } else {
+                    RichText::new(*item_label).color(TEXT_COLOR)
+                };
+                let button = egui::Button::new(text)
+                    .min_size(Vec2::new(38.0, 22.0))
+                    .fill(if is_selected {
+                        ACCENT
+                    } else {
+                        Color32::from_rgb(232, 238, 238)
+                    })
+                    .stroke(Stroke::new(
+                        1.0,
+                        if is_selected {
+                            ACCENT
+                        } else {
+                            Color32::from_rgb(196, 211, 212)
+                        },
+                    ));
+                if ui.add(button).clicked() {
+                    *selected = *value;
+                }
+            }
+        });
+    });
 }
 
 fn option_measure_row(
@@ -1940,8 +2217,8 @@ fn labeled_combo<'a>(
     ui.add_space(8.0);
 }
 
-const ENVELOPE_LEVELS: [(u8, &str); 3] = [(0, "기존"), (1, "현행"), (2, "강화")];
-const WINDOW_LEVELS: [(u8, &str); 4] = [(0, "기존"), (1, "창호1"), (2, "창호2"), (3, "창호3")];
+const ENVELOPE_LEVELS: [(u8, &str); 3] = [(0, "-"), (1, "현행"), (2, "강화")];
+const WINDOW_LEVELS: [(u8, &str); 4] = [(0, "-"), (1, "1"), (2, "2"), (3, "3")];
 
 fn apply_theme(ctx: &egui::Context) {
     let mut fonts = FontDefinitions::default();
