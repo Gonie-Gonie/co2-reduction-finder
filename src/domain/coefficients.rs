@@ -1,18 +1,25 @@
 use std::{
     collections::BTreeMap,
     sync::{
-        Arc,
+        Arc, OnceLock,
         atomic::{AtomicBool, Ordering},
         mpsc::Sender,
     },
     thread,
 };
 
+use serde::Deserialize;
+
 use super::{
     metrics::EnergyMetric, model_store::EmbeddedModelStore, reference_data::ReferenceData,
 };
 
 const DEFAULT_SAMPLE_COUNT: usize = 1000;
+const RETROFIT_COSTS_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/retrofit_costs.json"
+));
+static RETROFIT_COSTS: OnceLock<RetrofitCostConfig> = OnceLock::new();
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuildingType {
@@ -914,84 +921,192 @@ fn round2(value: f64) -> f64 {
     (value * 100.0).round() / 100.0
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RetrofitCostConfig {
+    schema_version: u32,
+    unit_costs: RetrofitUnitCosts,
+    rates: RetrofitCostRates,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RetrofitUnitCosts {
+    wall: f64,
+    roof: f64,
+    floor: f64,
+    window: f64,
+    cooling: f64,
+    heating: f64,
+    hx: f64,
+    lights: f64,
+    hw_boiler: f64,
+    coolroof: f64,
+    blind: f64,
+    pv: f64,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RetrofitCostRates {
+    additional_cost_ratio_for_enhanced_option: f64,
+    architecture_side_work: f64,
+    machine_side_work: f64,
+    demolition: f64,
+    waste: f64,
+    direct_labor: f64,
+    indirect_labor: f64,
+    expense: f64,
+    overhead: f64,
+    profit: f64,
+    design_fee: f64,
+    remodeling_design_surcharge: f64,
+    supervision_fee: f64,
+    tax: f64,
+}
+
+impl RetrofitCostConfig {
+    fn load() -> Result<Self, String> {
+        let config: Self =
+            serde_json::from_str(RETROFIT_COSTS_JSON).map_err(|error| error.to_string())?;
+        config.validate()?;
+        Ok(config)
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        if self.schema_version != 1 {
+            return Err(format!(
+                "unsupported retrofit cost schemaVersion {}",
+                self.schema_version
+            ));
+        }
+
+        for (name, value) in [
+            ("wall", self.unit_costs.wall),
+            ("roof", self.unit_costs.roof),
+            ("floor", self.unit_costs.floor),
+            ("window", self.unit_costs.window),
+            ("cooling", self.unit_costs.cooling),
+            ("heating", self.unit_costs.heating),
+            ("hx", self.unit_costs.hx),
+            ("lights", self.unit_costs.lights),
+            ("hwBoiler", self.unit_costs.hw_boiler),
+            ("coolroof", self.unit_costs.coolroof),
+            ("blind", self.unit_costs.blind),
+            ("pv", self.unit_costs.pv),
+        ] {
+            if !value.is_finite() || value < 0.0 {
+                return Err(format!("invalid retrofit unit cost {name}: {value}"));
+            }
+        }
+
+        for (name, value) in [
+            (
+                "additionalCostRatioForEnhancedOption",
+                self.rates.additional_cost_ratio_for_enhanced_option,
+            ),
+            ("architectureSideWork", self.rates.architecture_side_work),
+            ("machineSideWork", self.rates.machine_side_work),
+            ("demolition", self.rates.demolition),
+            ("waste", self.rates.waste),
+            ("directLabor", self.rates.direct_labor),
+            ("indirectLabor", self.rates.indirect_labor),
+            ("expense", self.rates.expense),
+            ("overhead", self.rates.overhead),
+            ("profit", self.rates.profit),
+            ("designFee", self.rates.design_fee),
+            (
+                "remodelingDesignSurcharge",
+                self.rates.remodeling_design_surcharge,
+            ),
+            ("supervisionFee", self.rates.supervision_fee),
+            ("tax", self.rates.tax),
+        ] {
+            if !value.is_finite() || value < 0.0 {
+                return Err(format!("invalid retrofit cost rate {name}: {value}"));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn retrofit_cost_config() -> &'static RetrofitCostConfig {
+    RETROFIT_COSTS
+        .get_or_init(|| RetrofitCostConfig::load().expect("embedded retrofit costs should load"))
+}
+
 pub fn retrofit_cost(spec: RetrofitSpec, area_m2: f64) -> u64 {
     if spec.active_count() == 0 || area_m2 <= 0.0 {
         return 0;
     }
 
-    const ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION: f64 = 0.1;
-    const WALL: f64 = 93_593.0;
-    const ROOF: f64 = 52_877.0;
-    const FLOOR: f64 = 76_428.0;
-    const WINDOW: f64 = 105_020.0;
-    const COOLING: f64 = 49_839.0;
-    const HEATING: f64 = 49_839.0;
-    const HX: f64 = 36_010.0;
-    const LIGHTS: f64 = 10_628.0;
-    const HW_BOILER: f64 = 8_167.0;
-    const COOLROOF: f64 = 45_882.0;
-    const BLIND: f64 = 19_935.0;
-    const PV: f64 = 71_027.0;
+    let config = retrofit_cost_config();
+    let costs = &config.unit_costs;
+    let rates = &config.rates;
 
     let mut required_architecture = 0.0;
     if spec.wall > 0 {
-        required_architecture += WALL;
+        required_architecture += costs.wall;
     }
     if spec.roof > 0 {
-        required_architecture += ROOF;
+        required_architecture += costs.roof;
     }
     if spec.floor > 0 {
-        required_architecture += FLOOR;
+        required_architecture += costs.floor;
     }
     if spec.window > 0 {
-        required_architecture += WINDOW;
+        required_architecture += costs.window;
     }
     if spec.wall == 2 {
-        required_architecture += WALL * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+        required_architecture += costs.wall * rates.additional_cost_ratio_for_enhanced_option;
     }
     if spec.roof == 2 {
-        required_architecture += ROOF * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+        required_architecture += costs.roof * rates.additional_cost_ratio_for_enhanced_option;
     }
     if spec.floor == 2 {
-        required_architecture += FLOOR * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+        required_architecture += costs.floor * rates.additional_cost_ratio_for_enhanced_option;
     }
     if spec.window == 1 {
-        required_architecture += WINDOW * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION * 2.0;
+        required_architecture +=
+            costs.window * rates.additional_cost_ratio_for_enhanced_option * 2.0;
     }
     if spec.window == 2 {
-        required_architecture += WINDOW * ADDITIONAL_COST_RATIO_FOR_ENHANCED_OPTION;
+        required_architecture += costs.window * rates.additional_cost_ratio_for_enhanced_option;
     }
 
-    let required_machine = bool_cost(spec.hx, HX)
-        + bool_cost(spec.cooling, COOLING)
-        + bool_cost(spec.heating, HEATING)
-        + bool_cost(spec.hw_boiler, HW_BOILER);
-    let required_electric = bool_cost(spec.lights, LIGHTS) + bool_cost(spec.pv, PV);
-    let required_other = bool_cost(spec.coolroof, COOLROOF);
-    let optional_architecture = bool_cost(spec.blind, BLIND);
+    let required_machine = bool_cost(spec.hx, costs.hx)
+        + bool_cost(spec.cooling, costs.cooling)
+        + bool_cost(spec.heating, costs.heating)
+        + bool_cost(spec.hw_boiler, costs.hw_boiler);
+    let required_electric = bool_cost(spec.lights, costs.lights) + bool_cost(spec.pv, costs.pv);
+    let required_other = bool_cost(spec.coolroof, costs.coolroof);
+    let optional_architecture = bool_cost(spec.blind, costs.blind);
 
     let required_work =
         required_architecture + required_machine + required_electric + required_other;
     let optional_work = optional_architecture;
 
-    let architecture_side_work = (required_architecture + optional_architecture) * 0.095;
-    let machine_side_work = required_machine * 0.090;
-    let demolition = required_work * 0.0693;
+    let architecture_side_work =
+        (required_architecture + optional_architecture) * rates.architecture_side_work;
+    let machine_side_work = required_machine * rates.machine_side_work;
+    let demolition = required_work * rates.demolition;
     let waste = (required_architecture
         + required_machine
-        + bool_cost(spec.lights, LIGHTS)
-        + bool_cost(spec.coolroof, COOLROOF)
+        + bool_cost(spec.lights, costs.lights)
+        + bool_cost(spec.coolroof, costs.coolroof)
         + demolition
         + architecture_side_work
         + machine_side_work)
-        * 0.04;
+        * rates.waste;
     let side_work = architecture_side_work + machine_side_work + demolition + waste;
 
-    let direct_labor = (required_work + optional_work + side_work) * 0.5;
-    let indirect_labor = direct_labor * 0.122;
-    let expense = (required_work + optional_work + side_work + indirect_labor) * 0.058;
-    let overhead = (required_work + optional_work + side_work + indirect_labor + expense) * 0.06;
-    let profit = (direct_labor + indirect_labor + expense + overhead) * 0.15;
+    let direct_labor = (required_work + optional_work + side_work) * rates.direct_labor;
+    let indirect_labor = direct_labor * rates.indirect_labor;
+    let expense = (required_work + optional_work + side_work + indirect_labor) * rates.expense;
+    let overhead =
+        (required_work + optional_work + side_work + indirect_labor + expense) * rates.overhead;
+    let profit = (direct_labor + indirect_labor + expense + overhead) * rates.profit;
 
     let construction_cost = required_work
         + optional_work
@@ -1001,9 +1116,9 @@ pub fn retrofit_cost(spec: RetrofitSpec, area_m2: f64) -> u64 {
         + expense
         + overhead
         + profit;
-    let design_fee = construction_cost * 0.0495 * 1.5;
-    let supervision_fee = construction_cost * 0.01185;
-    let tax = construction_cost * 0.1;
+    let design_fee = construction_cost * rates.design_fee * rates.remodeling_design_surcharge;
+    let supervision_fee = construction_cost * rates.supervision_fee;
+    let tax = construction_cost * rates.tax;
 
     ((construction_cost + design_fee + supervision_fee + tax) * area_m2).round() as u64
 }
@@ -1283,7 +1398,7 @@ fn inverse_standard_normal(p: f64) -> f64 {
 mod tests {
     use super::{
         RetrofitSpec, build_ann_inputs, converted_input_row, generate_uncertain_samples,
-        inverse_standard_normal, retrofit_cost,
+        inverse_standard_normal, retrofit_cost, retrofit_cost_config,
     };
     use crate::domain::{EmbeddedModelStore, EstimateRequest, ReferenceData, RetrofitOption};
 
@@ -1330,6 +1445,11 @@ mod tests {
     #[test]
     fn ports_python_retrofit_cost_formula() {
         assert_eq!(retrofit_cost(RetrofitSpec::default(), 1000.0), 0);
+
+        let config = retrofit_cost_config();
+        assert_eq!(config.schema_version, 1);
+        assert_eq!(config.unit_costs.wall.round() as u64, 93_593);
+        assert!((config.rates.tax - 0.1).abs() < f64::EPSILON);
 
         let spec = RetrofitSpec {
             wall: 2,

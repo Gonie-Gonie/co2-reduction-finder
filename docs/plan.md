@@ -27,7 +27,7 @@
 - Port energy/CO2 statistics using mean/std from sample-level predictions. Done for gas, electricity, final energy, primary energy, and greenhouse gas metrics.
 - Add Excel-compatible metric conversion factor management. Done in `src/domain/metrics.rs`.
 - Add smoothed histogram/density data for UI visualization. Initial distribution curves are drawn from the same mean/std layer as Excel; empirical smoothed histograms remain a follow-up.
-- Port retrofit cost calculation. Done using the Python reference formula, scaled by selected app area.
+- Port retrofit cost calculation. Done using the Python reference formula and official `assets/retrofit_costs.json`, scaled by selected app area.
 - Add focused unit tests for conversions, statistics, and cost branches.
 
 ## Milestone 3: Dashboard UI
@@ -51,7 +51,7 @@
 - Keep UI responsive and show result updates as they arrive.
 - Initial staged Pareto backend is implemented with cancellation. The next improvement is uncertainty-band dominance instead of point-estimate dominance.
 - Pareto scoring now follows the selected dashboard metric instead of always using CO2.
-- Pareto is invalidated when building context, area, or metric changes, but remains available while user comparison options change.
+- Pareto is invalidated when building context or area changes, and each run keeps metric-specific fronts so metric switching can reuse the same completed run.
 
 ## Milestone 5: Packaging
 
@@ -77,5 +77,5 @@
 - Make model weights and building-to-model mapping registry-driven instead of `info.csv` pair-specific logic. Done.
 - Support one or more weighted model segments per building type. Done in Rust runtime and extraction validation.
 - Keep H5/Keras source files out of the executable and regenerate compact assets through `scripts/extract_models.py`. Done.
-- Add rigorous workbook-vs-module verification before deleting `.reference`. Initial cached-value XLSX extractor added.
+- Add rigorous workbook-vs-module verification before deleting `.reference`. Done for a deterministic stratified audit covering 8,640 cached energy/stat cells and 120 exact cost rows.
 - Only delete `.reference` after cached Excel dashboard/calculation values are matched across representative baseline, retrofit, metric, uncertainty, and Pareto cases.

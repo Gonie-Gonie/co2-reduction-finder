@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "name": "retrofit-costs-v1",
+  "source": ".reference/pyCO2module/post_simulation.py add_retrofit_cost",
+  "currency": "KRW",
+  "unit": "per m2",
+  "unitCosts": {
+    "wall": 93593.0,
+    "roof": 52877.0,
+    "floor": 76428.0,
+    "window": 105020.0,
+    "cooling": 49839.0,
+    "heating": 49839.0,
+    "hx": 36010.0,
+    "lights": 10628.0,
+    "hwBoiler": 8167.0,
+    "coolroof": 45882.0,
+    "blind": 19935.0,
+    "pv": 71027.0
+  },
+  "rates": {
+    "additionalCostRatioForEnhancedOption": 0.1,
+    "architectureSideWork": 0.095,
+    "machineSideWork": 0.09,
+    "demolition": 0.0693,
+    "waste": 0.04,
+    "directLabor": 0.5,
+    "indirectLabor": 0.122,
+    "expense": 0.058,
+    "overhead": 0.06,
+    "profit": 0.15,
+    "designFee": 0.0495,
+    "remodelingDesignSurcharge": 1.5,
+    "supervisionFee": 0.01185,
+    "tax": 0.1
+  }
+}

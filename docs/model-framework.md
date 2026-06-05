@@ -8,8 +8,10 @@ The repository now treats ANN models as official source data rather than referen
 - `models/ann/v1/h5/*.h5`: official source models copied from the corrected reference model set.
 - `assets/models.c2m`: generated compact binary consumed by the Rust app.
 - `assets/models_manifest.json`: generated manifest for review and CI diffs.
+- `assets/Umap.csv`: official thermal-property map used to convert era/climate/retrofit selections into model inputs.
+- `assets/retrofit_costs.json`: official retrofit unit costs and indirect-cost rate factors used by cost/Pareto calculations.
 
-Only `assets/models.c2m` is embedded in the final executable. H5/Keras files stay in the repository for traceability and regeneration.
+The final executable embeds the compact/runtime assets under `assets/`; H5/Keras source files stay in the repository for traceability and regeneration and are not loaded by the app at runtime.
 
 ## Registry Contract
 
@@ -61,6 +63,16 @@ Converted building/retrofit inputs:
 25. `clm_3`
 
 If future models are trained on wider uncertainty ranges or a changed feature order, update the registry first and then update the Rust sampler/converter to match that schema revision.
+
+## Reference Data Contract
+
+Model updates should be separable from non-model reference updates:
+
+- ANN behavior is governed by `model_registry.json`, source H5/Keras files, and generated `assets/models.c2m`.
+- Thermal conversion behavior is governed by `assets/Umap.csv`.
+- Cost behavior is governed by `assets/retrofit_costs.json`.
+
+When changing model input ranges, uncertainty-variable conventions, or feature order, revise the model registry schema or its declared specs before changing Rust behavior. When changing U-value/SHGC or cost assumptions only, keep the ANN registry unchanged and update the relevant asset plus focused tests.
 
 ## Updating Models
 

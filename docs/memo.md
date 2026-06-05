@@ -46,7 +46,7 @@ Last updated: 2026-06-05
 
 - `src/app.rs`: egui dashboard with dynamic comparison options, level-based ECM controls, graph sections for user alternatives, single-measure effects, and Pareto candidates, progress display, cancellation, embedded Korean font support, and live ANN-backed calculation for non-Pareto outputs.
 - `src/domain/metrics.rs`: Excel-compatible metric conversion factors from `계산sheet!R5:U9` for electricity, gas, final energy demand, primary energy demand, and greenhouse gas emissions.
-- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, registry-defined weighted model segments, energy/CO2 mean and standard deviation summaries, Python-reference retrofit costs, and metric-aware staged Pareto search.
+- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, registry-defined weighted model segments, energy/CO2 mean and standard deviation summaries, official retrofit cost configuration, and metric-aware staged Pareto search.
 - `src/domain/mlp.rs`: custom Dense MLP forward pass with parallel batch prediction.
 - `src/domain/model_store.rs`: embedded compact model asset loader plus official model registry validation and weighted segment inference.
 - `src/domain/uncertainty.rs`: empirical distribution summary and smoothed histogram data.
@@ -56,6 +56,7 @@ Last updated: 2026-06-05
 - `assets/models_manifest.json`: generated model asset metadata and registry summary.
 - `assets/info.csv`: UTF-8 normalized building/model metadata from reference `info.csv`.
 - `assets/Umap.csv`: UTF-8 normalized thermal-property map from reference `Umap.csv`.
+- `assets/retrofit_costs.json`: official retrofit unit costs and indirect-cost rate factors ported from `post_simulation.py`.
 - `assets/fonts/Pretendard-Regular.ttf`: bundled OFL Korean font so the single exe does not depend on system CJK font fallback.
 - `scripts/setup.ps1`: repo-local Rust toolchain setup.
 - `scripts/extract_models.py`: developer-side registry-driven H5/Keras to compact model asset extraction.
@@ -118,7 +119,7 @@ Last updated: 2026-06-05
 - Largest differences concentrated in `School` gas sigma values around `53 kWh/m2`, consistent with sample-sequence differences between Excel's original `skopt.Lhs` run and the app's deterministic LHS-style sequence rather than a model/feature-order mismatch.
 - Cost comparison covered the same 120 stratified `DB_INDEX` rows and matched exactly: 120 / 120 exact, max absolute difference `0`.
 - After this audit, Rust summary statistics now keep 2 decimal places to match the Excel/Python DB export precision before UI formatting.
-- Conclusion: source H5 extraction, weighted model split, thermal conversion, DB row interpretation, and retrofit cost formula are consistent enough to proceed with app-native ANN calculations as the source of truth. Keep `.reference` until a final user-facing screenshot/build review confirms no workbook-only data is still needed.
+- Conclusion: source H5 extraction, weighted model split, thermal conversion, DB row interpretation, and retrofit cost formula are consistent enough to proceed with app-native ANN calculations as the source of truth. Remaining reference files are either promoted into official repo assets or documented as one-time transfer artifacts. Keep `.reference` until a final user-facing screenshot/build review confirms no workbook-only data is still needed.
 
 ## Official References Checked
 
