@@ -910,8 +910,8 @@ fn has_positive_metric_reduction(estimate: &OptionEstimate) -> bool {
         .any(|metric| estimate_metric_reduction(estimate, *metric) > 0.0)
 }
 
-fn round1(value: f64) -> f64 {
-    (value * 10.0).round() / 10.0
+fn round2(value: f64) -> f64 {
+    (value * 100.0).round() / 100.0
 }
 
 pub fn retrofit_cost(spec: RetrofitSpec, area_m2: f64) -> u64 {
@@ -1190,11 +1190,11 @@ fn summarize_energy_values(samples: &[EnergyValues]) -> Result<EnergyStats, Stri
 
 fn round_values(values: EnergyValues) -> EnergyValues {
     EnergyValues {
-        gas: round1(values.gas),
-        elec: round1(values.elec),
-        total: round1(values.total),
-        primary: round1(values.primary),
-        co2: round1(values.co2),
+        gas: round2(values.gas),
+        elec: round2(values.elec),
+        total: round2(values.total),
+        primary: round2(values.primary),
+        co2: round2(values.co2),
     }
 }
 

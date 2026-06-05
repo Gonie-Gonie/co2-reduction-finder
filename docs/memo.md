@@ -1,6 +1,6 @@
 # Project Memo
 
-Last updated: 2026-06-03
+Last updated: 2026-06-05
 
 ## Product Goal
 
@@ -102,6 +102,23 @@ Last updated: 2026-06-03
   - reduction/cost scatter charts from `계산sheet!H86:J285`
 - GitHub Releases show a tag and title separately. This is official GitHub behavior, but the workflow now sets the release title to the tag only and release notes start with `## Changes` to avoid duplicate-looking names.
 - UI smoke captures must use DWM extended frame bounds (`scripts/smoke_capture.ps1`) instead of raw `GetWindowRect + CopyFromScreen`; Windows DPI scaling and invisible resize borders can otherwise offset the capture relative to the visible app window.
+
+## Excel Transfer Audit
+
+- 2026-06-05 one-time audit used workbook cached XML values, not Excel automation.
+- Sampling avoided the regular DB ordering bias by taking 5 offsets (`0`, `1234`, `7777`, `15000`, `27647`) from each of the 24 climate/era blocks in `DB_INDEX`.
+- Compared 6 building DB sheets: `Office`, `SingleHousing`, `School`, `Hospital`, `MultiHousing`, and `ClassA`.
+- Energy/stat comparison covered 8,640 cached DB cells:
+  - columns: gas/electric before, after, reduction, and sigma fields
+  - max absolute difference: `0.95 kWh/m2`
+  - mean absolute difference: `0.0876 kWh/m2`
+  - median absolute difference: `0.03 kWh/m2`
+  - 7,937 / 8,640 cells within `0.25 kWh/m2`
+  - 8,640 / 8,640 cells within `1.00 kWh/m2`
+- Largest differences concentrated in `School` gas sigma values around `53 kWh/m2`, consistent with sample-sequence differences between Excel's original `skopt.Lhs` run and the app's deterministic LHS-style sequence rather than a model/feature-order mismatch.
+- Cost comparison covered the same 120 stratified `DB_INDEX` rows and matched exactly: 120 / 120 exact, max absolute difference `0`.
+- After this audit, Rust summary statistics now keep 2 decimal places to match the Excel/Python DB export precision before UI formatting.
+- Conclusion: source H5 extraction, weighted model split, thermal conversion, DB row interpretation, and retrofit cost formula are consistent enough to proceed with app-native ANN calculations as the source of truth. Keep `.reference` until a final user-facing screenshot/build review confirms no workbook-only data is still needed.
 
 ## Official References Checked
 
