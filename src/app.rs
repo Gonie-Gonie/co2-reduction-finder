@@ -25,7 +25,16 @@ enum DashboardTab {
     BaselineAnalysis,
 }
 
+#[derive(Debug, Clone)]
+struct BuildingChoice {
+    code: String,
+    label: String,
+    #[allow(dead_code)]
+    residential: bool,
+}
+
 pub struct Co2App {
+    building_types: Vec<BuildingChoice>,
     selected_building: usize,
     selected_climate: usize,
     construction_year: i32,
@@ -61,8 +70,18 @@ impl Co2App {
             Ok(data) => (Some(data), None),
             Err(error) => (None, Some(error)),
         };
+        let building_types = model_store
+            .as_ref()
+            .map(building_choices_from_registry)
+            .filter(|choices| !choices.is_empty())
+            .unwrap_or_else(default_building_choices);
+        let selected_building = building_types
+            .iter()
+            .position(|building| building.code == "Office")
+            .unwrap_or(0);
         let mut app = Self {
-            selected_building: 3,
+            building_types,
+            selected_building,
             selected_climate: 0,
             construction_year: 2004,
             selected_metric: EnergyMetric::Electricity,
@@ -113,7 +132,7 @@ impl Co2App {
 
     fn request_with_options(&self, options: Vec<RetrofitOption>) -> EstimateRequest {
         EstimateRequest {
-            building_type: BUILDING_TYPES[self.selected_building].code.to_string(),
+            building_type: self.building_types[self.selected_building].code.clone(),
             climate: CLIMATES[self.selected_climate].code.to_string(),
             era: ERAS[era_index_for_year(self.construction_year)]
                 .code
@@ -356,7 +375,7 @@ impl Co2App {
             "본과제용도분류",
             "building-type",
             &mut self.selected_building,
-            BUILDING_TYPES.iter().map(|item| item.label),
+            self.building_types.iter().map(|item| item.label.as_str()),
         );
         labeled_combo(
             ui,
@@ -2422,6 +2441,29 @@ fn labeled_combo<'a>(
             }
         });
     ui.add_space(8.0);
+}
+
+fn building_choices_from_registry(model_store: &EmbeddedModelStore) -> Vec<BuildingChoice> {
+    model_store
+        .building_types()
+        .iter()
+        .map(|building| BuildingChoice {
+            code: building.code.clone(),
+            label: building.label.clone(),
+            residential: building.residential,
+        })
+        .collect()
+}
+
+fn default_building_choices() -> Vec<BuildingChoice> {
+    BUILDING_TYPES
+        .iter()
+        .map(|building| BuildingChoice {
+            code: building.code.to_string(),
+            label: building.label.to_string(),
+            residential: building.residential,
+        })
+        .collect()
 }
 
 const ENVELOPE_LEVELS: [(u8, &str); 2] = [(1, "현행"), (2, "강화")];

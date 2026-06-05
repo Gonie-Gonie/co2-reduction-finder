@@ -51,6 +51,12 @@ git push origin v0.1.7
 
 Details are tracked in [docs/release.md](docs/release.md).
 
+## Model Registry
+
+Official ANN source models and weights live under `models/ann/v1/`.
+Run `python scripts\extract_models.py` after model registry changes to regenerate the compact embedded assets.
+The framework contract is documented in [docs/model-framework.md](docs/model-framework.md).
+
 ## Notes
 
 Project direction and reference-code analysis are tracked in [docs/memo.md](docs/memo.md) and [docs/reference-analysis.md](docs/reference-analysis.md).

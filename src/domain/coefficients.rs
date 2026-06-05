@@ -493,7 +493,6 @@ struct EvaluationContext {
     residential: bool,
     climate: u8,
     era: u8,
-    model1_weight: f64,
     uncertain_samples: Vec<[f32; 7]>,
     baseline: EnergyStats,
     baseline_samples: Vec<EnergyValues>,
@@ -514,12 +513,10 @@ fn prepare_evaluation_context(
         .parse::<u8>()
         .map_err(|error| error.to_string())?;
     let base_type = request.building_type.clone();
-    let model1_name = format!("{base_type}_1");
-    let residential = reference_data
-        .get(&model1_name)
-        .ok_or_else(|| format!("metadata not found: {model1_name}"))?
+    let residential = model_store
+        .building_type(&base_type)
+        .ok_or_else(|| format!("building type not found in model registry: {base_type}"))?
         .residential;
-    let model1_weight = reference_data.model1_weight_for_base(&base_type)?;
     let uncertain_samples = generate_uncertain_samples(sample_count);
 
     let before_row = converted_input_row(
@@ -530,8 +527,7 @@ fn prepare_evaluation_context(
         &RetrofitSpec::default(),
     )?;
     let before_inputs = build_ann_inputs(&uncertain_samples, &before_row);
-    let before_predictions =
-        model_store.predict_pair_split(&base_type, model1_weight, &before_inputs)?;
+    let before_predictions = model_store.predict_weighted_segments(&base_type, &before_inputs)?;
     let baseline_distribution = summarize_predictions(&before_predictions)?;
 
     Ok(EvaluationContext {
@@ -539,7 +535,6 @@ fn prepare_evaluation_context(
         residential,
         climate,
         era,
-        model1_weight,
         uncertain_samples,
         baseline: baseline_distribution.stats,
         baseline_samples: baseline_distribution.samples,
@@ -563,7 +558,7 @@ fn evaluate_option(
     )?;
     let after_inputs = build_ann_inputs(&context.uncertain_samples, &after_row);
     let after_predictions =
-        model_store.predict_pair_split(&context.base_type, context.model1_weight, &after_inputs)?;
+        model_store.predict_weighted_segments(&context.base_type, &after_inputs)?;
     let after = summarize_predictions(&after_predictions)?;
     let reduction = summarize_reductions(&context.baseline_samples, &after.samples)?;
 

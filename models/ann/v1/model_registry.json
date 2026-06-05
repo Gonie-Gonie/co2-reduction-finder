@@ -1,0 +1,785 @@
+{
+  "schemaVersion": 1,
+  "name": "co2-reduction-ann-v1",
+  "description": "Official ANN model registry for the native CO2 reduction finder app.",
+  "modelFormat": {
+    "runtime": "custom-dense-mlp",
+    "compactBinary": "../../../assets/models.c2m",
+    "sourceFormats": [
+      "keras-hdf5",
+      "keras-v3"
+    ],
+    "supportedLayers": [
+      "Dense"
+    ],
+    "supportedActivations": [
+      "elu",
+      "linear"
+    ],
+    "floatType": "f32"
+  },
+  "inputSpec": {
+    "dimension": 25,
+    "features": [
+      {
+        "index": 0,
+        "name": "people",
+        "source": "uncertainty",
+        "scaledRange": [
+          0.0,
+          1.0
+        ],
+        "sampling": "normal_inverse_cdf_three_sigma"
+      },
+      {
+        "index": 1,
+        "name": "equip",
+        "source": "uncertainty",
+        "scaledRange": [
+          0.0,
+          1.0
+        ],
+        "sampling": "normal_inverse_cdf_three_sigma"
+      },
+      {
+        "index": 2,
+        "name": "htgset",
+        "source": "uncertainty",
+        "scaledRange": [
+          0.0,
+          1.0
+        ],
+        "sampling": "uniform"
+      },
+      {
+        "index": 3,
+        "name": "clgset",
+        "source": "uncertainty",
+        "scaledRange": [
+          0.0,
+          1.0
+        ],
+        "sampling": "uniform"
+      },
+      {
+        "index": 4,
+        "name": "wwr",
+        "source": "uncertainty",
+        "scaledRange": [
+          0.0,
+          1.0
+        ],
+        "sampling": "uniform"
+      },
+      {
+        "index": 5,
+        "name": "HW",
+        "source": "uncertainty",
+        "scaledRange": [
+          0.0,
+          1.0
+        ],
+        "sampling": "normal_inverse_cdf_three_sigma"
+      },
+      {
+        "index": 6,
+        "name": "infil",
+        "source": "uncertainty",
+        "scaledRange": [
+          0.0,
+          1.0
+        ],
+        "sampling": "normal_inverse_cdf_three_sigma"
+      },
+      {
+        "index": 7,
+        "name": "wall",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 8,
+        "name": "roof",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 9,
+        "name": "floor",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 10,
+        "name": "winU",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 11,
+        "name": "SHGC",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 12,
+        "name": "cooling",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 13,
+        "name": "heating",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 14,
+        "name": "HX",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 15,
+        "name": "lights",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 16,
+        "name": "HWBoiler",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 17,
+        "name": "coolroof",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 18,
+        "name": "blind",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 19,
+        "name": "PV",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 20,
+        "name": "era",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 21,
+        "name": "clm_0",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 22,
+        "name": "clm_1",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 23,
+        "name": "clm_2",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 24,
+        "name": "clm_3",
+        "source": "converted",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "outputSpec": {
+    "dimension": 2,
+    "features": [
+      {
+        "index": 0,
+        "name": "gas",
+        "unit": "kWh/m2"
+      },
+      {
+        "index": 1,
+        "name": "electricity",
+        "unit": "kWh/m2"
+      }
+    ]
+  },
+  "uncertaintySampler": {
+    "method": "latin_hypercube",
+    "defaultSampleCount": 1000,
+    "normalInverseCdfRule": "0.5 + inverse_standard_normal(u) / 6.0",
+    "variables": [
+      {
+        "index": 0,
+        "name": "people",
+        "sampling": "normal_inverse_cdf_three_sigma",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 1,
+        "name": "equip",
+        "sampling": "normal_inverse_cdf_three_sigma",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 2,
+        "name": "htgset",
+        "sampling": "uniform",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 3,
+        "name": "clgset",
+        "sampling": "uniform",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 4,
+        "name": "wwr",
+        "sampling": "uniform",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 5,
+        "name": "HW",
+        "sampling": "normal_inverse_cdf_three_sigma",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "index": 6,
+        "name": "infil",
+        "sampling": "normal_inverse_cdf_three_sigma",
+        "scaledRange": [
+          0.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "buildingTypes": [
+    {
+      "code": "SingleHousing",
+      "label": "단독주택",
+      "residential": true,
+      "gasHeating": true,
+      "models": [
+        {
+          "name": "SingleHousing_1",
+          "source": "h5/SingleHousing_1.h5",
+          "weight": 0.642239053,
+          "koreanName": "단독주택_1",
+          "referenceAreaM2": 74.2
+        },
+        {
+          "name": "SingleHousing_2",
+          "source": "h5/SingleHousing_2.h5",
+          "weight": 0.357760947,
+          "koreanName": "단독주택_2",
+          "referenceAreaM2": 213.9
+        }
+      ]
+    },
+    {
+      "code": "SmallMultiHousing",
+      "label": "C유형 소형공동주택",
+      "residential": true,
+      "gasHeating": true,
+      "models": [
+        {
+          "name": "SmallMultiHousing_1",
+          "source": "h5/SmallMultiHousing_1.h5",
+          "weight": 0.275050315,
+          "koreanName": "C유형 소형공동주택_1",
+          "referenceAreaM2": 303.6
+        },
+        {
+          "name": "SmallMultiHousing_2",
+          "source": "h5/SmallMultiHousing_2.h5",
+          "weight": 0.724949685,
+          "koreanName": "C유형 소형공동주택_2",
+          "referenceAreaM2": 663.3
+        }
+      ]
+    },
+    {
+      "code": "MultiHousing",
+      "label": "D유형 공동주택",
+      "residential": true,
+      "gasHeating": true,
+      "models": [
+        {
+          "name": "MultiHousing_1",
+          "source": "h5/MultiHousing_1.h5",
+          "weight": 0.263810981,
+          "koreanName": "D유형 공동주택_1",
+          "referenceAreaM2": 3726.3
+        },
+        {
+          "name": "MultiHousing_2",
+          "source": "h5/MultiHousing_2.h5",
+          "weight": 0.736189019,
+          "koreanName": "D유형 공동주택_2",
+          "referenceAreaM2": 10670.4
+        }
+      ]
+    },
+    {
+      "code": "Office",
+      "label": "업무시설",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Office_1",
+          "source": "h5/Office_1.h5",
+          "weight": 0.522416097,
+          "koreanName": "업무시설_1",
+          "referenceAreaM2": 1310.1
+        },
+        {
+          "name": "Office_2",
+          "source": "h5/Office_2.h5",
+          "weight": 0.477583903,
+          "koreanName": "업무시설_2",
+          "referenceAreaM2": 13754.0
+        }
+      ]
+    },
+    {
+      "code": "PoliceOffice",
+      "label": "파출소",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "PoliceOffice_1",
+          "source": "h5/PoliceOffice_1.h5",
+          "weight": 0.415273756,
+          "koreanName": "파출소_1",
+          "referenceAreaM2": 150.0
+        },
+        {
+          "name": "PoliceOffice_2",
+          "source": "h5/PoliceOffice_2.h5",
+          "weight": 0.584726244,
+          "koreanName": "파출소_2",
+          "referenceAreaM2": 318.5
+        }
+      ]
+    },
+    {
+      "code": "Firestation",
+      "label": "소방서",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Firestation_1",
+          "source": "h5/Firestation_1.h5",
+          "weight": 0.26758372,
+          "koreanName": "소방서_1",
+          "referenceAreaM2": 215.4
+        },
+        {
+          "name": "Firestation_2",
+          "source": "h5/Firestation_2.h5",
+          "weight": 0.73241628,
+          "koreanName": "소방서_2",
+          "referenceAreaM2": 765.6
+        }
+      ]
+    },
+    {
+      "code": "PostOffice",
+      "label": "우체국",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "PostOffice_1",
+          "source": "h5/PostOffice_1.h5",
+          "weight": 0.237164181,
+          "koreanName": "우체국_1",
+          "referenceAreaM2": 109.7
+        },
+        {
+          "name": "PostOffice_2",
+          "source": "h5/PostOffice_2.h5",
+          "weight": 0.762835819,
+          "koreanName": "우체국_2",
+          "referenceAreaM2": 390.0
+        }
+      ]
+    },
+    {
+      "code": "Theater",
+      "label": "공연시설",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Theater_1",
+          "source": "h5/Theater_1.h5",
+          "weight": 0.285569249,
+          "koreanName": "공연시설_1",
+          "referenceAreaM2": 692.0
+        },
+        {
+          "name": "Theater_2",
+          "source": "h5/Theater_2.h5",
+          "weight": 0.714430751,
+          "koreanName": "공연시설_2",
+          "referenceAreaM2": 4070.0
+        }
+      ]
+    },
+    {
+      "code": "Gallery",
+      "label": "전시장",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Gallery_1",
+          "source": "h5/Gallery_1.h5",
+          "weight": 0.385465962,
+          "koreanName": "전시장_1",
+          "referenceAreaM2": 396.0
+        },
+        {
+          "name": "Gallery_2",
+          "source": "h5/Gallery_2.h5",
+          "weight": 0.614534038,
+          "koreanName": "전시장_2",
+          "referenceAreaM2": 2873.0
+        }
+      ]
+    },
+    {
+      "code": "Terminal",
+      "label": "여객시설",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Terminal_1",
+          "source": "h5/Terminal_1.h5",
+          "weight": 0.369936177,
+          "koreanName": "여객시설_1",
+          "referenceAreaM2": 498.8
+        },
+        {
+          "name": "Terminal_2",
+          "source": "h5/Terminal_2.h5",
+          "weight": 0.630063823,
+          "koreanName": "여객시설_2",
+          "referenceAreaM2": 5157.0
+        }
+      ]
+    },
+    {
+      "code": "Transport",
+      "label": "철도공항",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Transport_1",
+          "source": "h5/Transport_1.h5",
+          "weight": 0.491789721,
+          "koreanName": "철도공항_1",
+          "referenceAreaM2": 898.7
+        },
+        {
+          "name": "Transport_2",
+          "source": "h5/Transport_2.h5",
+          "weight": 0.508210279,
+          "koreanName": "철도공항_2",
+          "referenceAreaM2": 12065.0
+        }
+      ]
+    },
+    {
+      "code": "Hospital",
+      "label": "병원",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Hospital_1",
+          "source": "h5/Hospital_1.h5",
+          "weight": 0.400486637,
+          "koreanName": "병원_1",
+          "referenceAreaM2": 2209.6
+        },
+        {
+          "name": "Hospital_2",
+          "source": "h5/Hospital_2.h5",
+          "weight": 0.599513363,
+          "koreanName": "병원_2",
+          "referenceAreaM2": 7092.0
+        }
+      ]
+    },
+    {
+      "code": "Kindergarten",
+      "label": "아동관련시설",
+      "residential": false,
+      "gasHeating": true,
+      "models": [
+        {
+          "name": "Kindergarten_1",
+          "source": "h5/Kindergarten_1.h5",
+          "weight": 0.43466413,
+          "koreanName": "아동관련시설_1",
+          "referenceAreaM2": 364.8
+        },
+        {
+          "name": "Kindergarten_2",
+          "source": "h5/Kindergarten_2.h5",
+          "weight": 0.56533587,
+          "koreanName": "아동관련시설_2",
+          "referenceAreaM2": 1140.1
+        }
+      ]
+    },
+    {
+      "code": "School",
+      "label": "초중고",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "School_1",
+          "source": "h5/School_1.h5",
+          "weight": 0.257607498,
+          "koreanName": "초중고_1",
+          "referenceAreaM2": 1094.8
+        },
+        {
+          "name": "School_2",
+          "source": "h5/School_2.h5",
+          "weight": 0.742392502,
+          "koreanName": "초중고_2",
+          "referenceAreaM2": 7726.0
+        }
+      ]
+    },
+    {
+      "code": "Univ",
+      "label": "대학",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Univ_1",
+          "source": "h5/Univ_1.h5",
+          "weight": 0.333682708,
+          "koreanName": "대학_1",
+          "referenceAreaM2": 1800.0
+        },
+        {
+          "name": "Univ_2",
+          "source": "h5/Univ_2.h5",
+          "weight": 0.666317292,
+          "koreanName": "대학_2",
+          "referenceAreaM2": 9257.5
+        }
+      ]
+    },
+    {
+      "code": "Lab",
+      "label": "연구소",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Lab_1",
+          "source": "h5/Lab_1.h5",
+          "weight": 0.463112234,
+          "koreanName": "연구소_1",
+          "referenceAreaM2": 2502.0
+        },
+        {
+          "name": "Lab_2",
+          "source": "h5/Lab_2.h5",
+          "weight": 0.536887766,
+          "koreanName": "연구소_2",
+          "referenceAreaM2": 14151.0
+        }
+      ]
+    },
+    {
+      "code": "TrainingCtr",
+      "label": "수련시설",
+      "residential": false,
+      "gasHeating": true,
+      "models": [
+        {
+          "name": "TrainingCtr_1",
+          "source": "h5/TrainingCtr_1.h5",
+          "weight": 0.270388287,
+          "koreanName": "수련시설_1",
+          "referenceAreaM2": 300.4
+        },
+        {
+          "name": "TrainingCtr_2",
+          "source": "h5/TrainingCtr_2.h5",
+          "weight": 0.729611713,
+          "koreanName": "수련시설_2",
+          "referenceAreaM2": 2973.1
+        }
+      ]
+    },
+    {
+      "code": "Gymnasium",
+      "label": "체육시설",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Gymnasium_1",
+          "source": "h5/Gymnasium_1.h5",
+          "weight": 0.363593146,
+          "koreanName": "체육시설_1",
+          "referenceAreaM2": 656.2
+        },
+        {
+          "name": "Gymnasium_2",
+          "source": "h5/Gymnasium_2.h5",
+          "weight": 0.636406854,
+          "koreanName": "체육시설_2",
+          "referenceAreaM2": 4153.1
+        }
+      ]
+    },
+    {
+      "code": "Library",
+      "label": "B유형 도서관",
+      "residential": false,
+      "gasHeating": false,
+      "models": [
+        {
+          "name": "Library_1",
+          "source": "h5/Library_1.h5",
+          "weight": 0.375165187,
+          "koreanName": "B유형 도서관_1",
+          "referenceAreaM2": 1198.0
+        },
+        {
+          "name": "Library_2",
+          "source": "h5/Library_2.h5",
+          "weight": 0.624834813,
+          "koreanName": "B유형 도서관_2",
+          "referenceAreaM2": 3670.5
+        }
+      ]
+    },
+    {
+      "code": "ClassA",
+      "label": "A유형 업무지원시설",
+      "residential": false,
+      "gasHeating": true,
+      "models": [
+        {
+          "name": "ClassA_1",
+          "source": "h5/ClassA_1.h5",
+          "weight": 0.496543087,
+          "koreanName": "A유형 업무지원시설_1",
+          "referenceAreaM2": 160.3
+        },
+        {
+          "name": "ClassA_2",
+          "source": "h5/ClassA_2.h5",
+          "weight": 0.503456913,
+          "koreanName": "A유형 업무지원시설_2",
+          "referenceAreaM2": 1395.0
+        }
+      ]
+    }
+  ]
+}

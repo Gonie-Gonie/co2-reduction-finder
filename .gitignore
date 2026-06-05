@@ -21,3 +21,5 @@ Thumbs.db
 *.h5
 *.hdf5
 *.onnx
+
+!models/ann/v1/h5/*.h5

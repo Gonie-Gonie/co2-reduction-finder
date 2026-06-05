@@ -8,12 +8,12 @@ pub struct BuildingMetadata {
     #[allow(dead_code)]
     pub korean_name: String,
     pub model_name: String,
+    #[allow(dead_code)]
     pub residential: bool,
     #[allow(dead_code)]
     pub gas_heating: bool,
     #[allow(dead_code)]
     pub area: f64,
-    pub weight: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -75,9 +75,6 @@ impl ReferenceData {
                 area: columns[5]
                     .parse::<f64>()
                     .map_err(|error| error.to_string())?,
-                weight: columns[6]
-                    .parse::<f64>()
-                    .map_err(|error| error.to_string())?,
             };
             info.insert(metadata.model_name.clone(), metadata);
         }
@@ -133,28 +130,9 @@ impl ReferenceData {
         self.umap_rows
     }
 
+    #[allow(dead_code)]
     pub fn get(&self, model_name: &str) -> Option<&BuildingMetadata> {
         self.info.get(model_name)
-    }
-
-    pub fn model1_weight_for_base(&self, base_type: &str) -> Result<f64, String> {
-        let model1_name = format!("{base_type}_1");
-        let model2_name = format!("{base_type}_2");
-        let model1 = self
-            .get(&model1_name)
-            .ok_or_else(|| format!("metadata not found: {model1_name}"))?;
-        let model2 = self
-            .get(&model2_name)
-            .ok_or_else(|| format!("metadata not found: {model2_name}"))?;
-
-        let sum = model1.weight + model2.weight;
-        if (sum - 1.0).abs() > 0.000_001 {
-            return Err(format!(
-                "{base_type} model weights do not sum to 1.0: {sum}"
-            ));
-        }
-
-        Ok(model1.weight)
     }
 
     pub fn thermal_properties(
@@ -247,7 +225,6 @@ mod tests {
         assert_eq!(data.info_len(), 40);
         assert!(data.umap_rows() > 0);
         assert!(data.get("Office_1").is_some());
-        assert!((data.model1_weight_for_base("Office").unwrap() - 0.522416097).abs() < 0.000_001);
 
         let thermal = data
             .thermal_properties(false, 0, 0, 0, 0, 0, 0)

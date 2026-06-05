@@ -70,3 +70,12 @@
 - Manage release notes by tag under `docs/release-notes/`. Done.
 - Feed matching release notes into GitHub Release automation. Done.
 - Use tag-only GitHub Release titles and start release note bodies with `## Changes` to avoid duplicate-looking release names. Done.
+
+## Milestone 8: Model Framework And Excel Verification
+
+- Promote corrected H5 source models into official repo data under `models/ann/v1/h5/`. Done.
+- Make model weights and building-to-model mapping registry-driven instead of `info.csv` pair-specific logic. Done.
+- Support one or more weighted model segments per building type. Done in Rust runtime and extraction validation.
+- Keep H5/Keras source files out of the executable and regenerate compact assets through `scripts/extract_models.py`. Done.
+- Add rigorous workbook-vs-module verification before deleting `.reference`. Initial cached-value XLSX extractor added.
+- Only delete `.reference` after cached Excel dashboard/calculation values are matched across representative baseline, retrofit, metric, uncertainty, and Pareto cases.

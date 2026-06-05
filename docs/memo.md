@@ -46,17 +46,19 @@ Last updated: 2026-06-03
 
 - `src/app.rs`: egui dashboard with dynamic comparison options, level-based ECM controls, graph sections for user alternatives, single-measure effects, and Pareto candidates, progress display, cancellation, embedded Korean font support, and live ANN-backed calculation for non-Pareto outputs.
 - `src/domain/metrics.rs`: Excel-compatible metric conversion factors from `계산sheet!R5:U9` for electricity, gas, final energy demand, primary energy demand, and greenhouse gas emissions.
-- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, Python-style `_1/_2` sample split, energy/CO2 mean and standard deviation summaries, Python-reference retrofit costs, and metric-aware staged Pareto search.
+- `src/domain/coefficients.rs`: ANN-backed estimate path using 1000 uncertain samples, Umap conversion, registry-defined weighted model segments, energy/CO2 mean and standard deviation summaries, Python-reference retrofit costs, and metric-aware staged Pareto search.
 - `src/domain/mlp.rs`: custom Dense MLP forward pass with parallel batch prediction.
-- `src/domain/model_store.rs`: embedded compact model asset loader.
+- `src/domain/model_store.rs`: embedded compact model asset loader plus official model registry validation and weighted segment inference.
 - `src/domain/uncertainty.rs`: empirical distribution summary and smoothed histogram data.
-- `assets/models.c2m`: compact Dense MLP weights extracted from corrected `.reference/data-02 annmodels/*.h5`.
-- `assets/models_manifest.json`: generated model asset metadata.
+- `models/ann/v1/model_registry.json`: official ANN model registry, including building type model segments, weights, input/output spec, and uncertainty-variable conventions.
+- `models/ann/v1/h5/*.h5`: official source Keras HDF5 models; these are not loaded by the app at runtime.
+- `assets/models.c2m`: compact Dense MLP weights generated from the official model registry.
+- `assets/models_manifest.json`: generated model asset metadata and registry summary.
 - `assets/info.csv`: UTF-8 normalized building/model metadata from reference `info.csv`.
 - `assets/Umap.csv`: UTF-8 normalized thermal-property map from reference `Umap.csv`.
 - `assets/fonts/Pretendard-Regular.ttf`: bundled OFL Korean font so the single exe does not depend on system CJK font fallback.
 - `scripts/setup.ps1`: repo-local Rust toolchain setup.
-- `scripts/extract_models.py`: developer-side H5 to compact model asset extraction.
+- `scripts/extract_models.py`: developer-side registry-driven H5/Keras to compact model asset extraction.
 - `scripts/extract_reference_assets.py`: developer-side reference CSV normalization.
 - `.github/workflows/ci.yml`: main push/PR checks.
 - `.github/workflows/release.yml`: automatic GitHub Release for Windows exe using tag-specific release notes.
@@ -64,12 +66,12 @@ Last updated: 2026-06-03
 
 ## Model Asset Notes
 
-- The corrected source H5 files live in `.reference/data-02 annmodels`.
-- The corrected source set has 40 H5 files, matching the 40 rows in `info.csv`.
+- The corrected source H5 files now live officially in `models/ann/v1/h5`.
+- The official source set has 40 H5 files and is described by `models/ann/v1/model_registry.json`.
 - Extracted inference-only f32 weights are about 22.2MB.
 - The corrected extracted models are all 25-input, 2-output Dense MLPs.
-- Building-type predictions must use the Python `get_coeff()` split strategy: `{Type}_1` predicts the first `int(weight * sample_count)` samples, and `{Type}_2` predicts the remaining samples. This is not a weighted average of prediction values.
-- Current app estimates already use the corrected embedded models and the split strategy above.
+- Building-type predictions use registry-defined weighted sample segments. The current registry has two segments per building type and preserves the Python `get_coeff()` split strategy; the runtime supports one or more segments as long as weights sum to `1.0`.
+- Current app estimates already use the corrected embedded models and registry-defined segment strategy.
 - Full converted ECM lookup tables are not included because they are about 57MB each. They should be generated in Rust from compact rules/data.
 
 ## Current Limitations

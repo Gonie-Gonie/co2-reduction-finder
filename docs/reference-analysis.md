@@ -85,8 +85,8 @@ The coefficient generation path concatenates uncertain variables with converted 
 
 For each building type:
 
-1. Load two models, e.g. `Office_1.h5` and `Office_2.h5`.
-2. Use `info.csv` `weights` for the `_1` model to split the uncertain samples between model 1 and model 2.
+1. Load the model segments declared for the building type in `models/ann/v1/model_registry.json`.
+2. Use registry weights to split the uncertain samples between model segments.
 3. Generate uncertain samples with LHS, default 1000 samples.
 4. For each ECM combination row, repeat the converted row for all uncertain samples.
 5. Predict gas/elec after retrofit.
@@ -94,7 +94,7 @@ For each building type:
 7. Compute delta, energy, CO2, variance-derived sigma values.
 8. Add retrofit cost by ECM option.
 
-Important: step 2 is sample splitting, not value blending. Python computes `model_split_idx = int(weight * len(ann_input))`, predicts the first slice with model 1, predicts the remaining slice with model 2, and concatenates both prediction arrays.
+Important: step 2 is sample splitting, not value blending. The current two-model registry preserves the Python behavior: `model_split_idx = int(weight * len(ann_input))`, first slice with model 1, remaining slice with model 2, then concatenate both prediction arrays. For future N-segment registries, Rust uses cumulative weights and the last segment consumes any remainder.
 
 ## Distribution Handling
 
@@ -125,7 +125,7 @@ Important: step 2 is sample splitting, not value blending. Python computes `mode
   - `CO2`: gas `0.20245`, electricity `0.45941`, `[tCO2eq]`
 - Retrofit unit cost constants in `post_simulation.py` should move into Rust data/config.
 - U-value/SHGC lookup comes from `Umap.csv`.
-- Building type labels and model split weights come from `info.csv`.
+- Building type labels and model segment weights come from `models/ann/v1/model_registry.json`. `info.csv` remains reference metadata for legacy rows and auxiliary building attributes.
 
 ## Excel MAIN Sheet Chart Flow
 
