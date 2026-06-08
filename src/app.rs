@@ -728,8 +728,6 @@ impl Co2App {
                 self.area_m2,
                 true,
             );
-            ui.add_space(8.0);
-            pareto_technology_table(ui, result);
         } else {
             let message = if self.is_running {
                 "Pareto 계산 중입니다."
@@ -1128,17 +1126,41 @@ fn numeric_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     );
 }
 
+fn centered_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
+    let text = text.into();
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
+    ui.painter_at(rect).text(
+        rect.center(),
+        Align2::CENTER_CENTER,
+        text,
+        egui::FontId::proportional(12.0),
+        TEXT_COLOR,
+    );
+}
+
+fn centered_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
+    let text = text.into();
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
+    ui.painter_at(rect).text(
+        rect.center(),
+        Align2::CENTER_CENTER,
+        text,
+        egui::FontId::proportional(12.0),
+        TEXT_COLOR,
+    );
+}
+
 fn efficiency_cell(ui: &mut egui::Ui, efficiency: f64, max_efficiency: f64, width: f32) {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
+    let painter = ui.painter_at(rect);
     let bar_rect = rect.shrink2(Vec2::new(2.0, 4.0));
-    ui.painter()
-        .rect_filled(bar_rect, 2.0, Color32::from_rgb(232, 238, 238));
+    painter.rect_filled(bar_rect, 2.0, Color32::from_rgb(232, 238, 238));
     if max_efficiency > 0.0 && efficiency.is_finite() {
         let fill_width = bar_rect.width() * (efficiency / max_efficiency).clamp(0.0, 1.0) as f32;
         let fill_rect = Rect::from_min_size(bar_rect.min, Vec2::new(fill_width, bar_rect.height()));
-        ui.painter().rect_filled(fill_rect, 2.0, ACCENT);
+        painter.rect_filled(fill_rect, 2.0, ACCENT);
     }
-    ui.painter().text(
+    painter.text(
         Pos2::new(rect.right() - 4.0, rect.center().y),
         Align2::RIGHT_CENTER,
         format_number(efficiency),
@@ -1820,22 +1842,35 @@ fn result_table(
     include_incremental: bool,
 ) {
     let factor = metric.factor();
+    let before_width = if include_incremental { 76.0 } else { 92.0 };
+    let after_width = if include_incremental { 76.0 } else { 92.0 };
+    let reduction_width = if include_incremental { 82.0 } else { 104.0 };
+    let rate_width = if include_incremental { 58.0 } else { 76.0 };
+    let std_width = if include_incremental { 82.0 } else { 104.0 };
+    let cost_width = if include_incremental { 92.0 } else { 112.0 };
+    let efficiency_width = 136.0;
     egui::ScrollArea::horizontal()
         .auto_shrink([false, true])
         .show(ui, |ui| {
             egui::Grid::new(id)
                 .striped(true)
-                .min_col_width(86.0)
+                .min_col_width(if include_incremental { 32.0 } else { 86.0 })
+                .spacing(Vec2::new(6.0, 4.0))
                 .show(ui, |ui| {
                     ui.strong("구분");
-                    numeric_header(ui, &format!("전 [{}]", factor.unit), 92.0);
-                    numeric_header(ui, &format!("후 [{}]", factor.unit), 92.0);
-                    numeric_header(ui, &format!("감축 [{}]", factor.unit), 104.0);
-                    numeric_header(ui, "감축률", 76.0);
-                    numeric_header(ui, &format!("표준편차 [{}]", factor.unit), 104.0);
-                    numeric_header(ui, "공사비", 112.0);
+                    numeric_header(ui, &format!("전 [{}]", factor.unit), before_width);
+                    numeric_header(ui, &format!("후 [{}]", factor.unit), after_width);
+                    numeric_header(ui, &format!("감축 [{}]", factor.unit), reduction_width);
+                    numeric_header(ui, "감축률", rate_width);
+                    numeric_header(ui, &format!("표준편차 [{}]", factor.unit), std_width);
+                    numeric_header(ui, "공사비", cost_width);
                     if include_incremental {
-                        numeric_header(ui, &format!("효율 [{}/억원]", factor.unit), 220.0);
+                        numeric_header(
+                            ui,
+                            &format!("효율 [{}/억원]", factor.unit),
+                            efficiency_width,
+                        );
+                        pareto_technology_headers(ui);
                     }
                     ui.end_row();
 
@@ -1872,48 +1907,67 @@ fn result_table(
                             include_incremental,
                             efficiency,
                             max_efficiency,
+                            TableWidths {
+                                before: before_width,
+                                after: after_width,
+                                reduction: reduction_width,
+                                rate: rate_width,
+                                std: std_width,
+                                cost: cost_width,
+                                efficiency: efficiency_width,
+                            },
                         );
-                    }
-                });
-        });
-}
-
-fn pareto_technology_table(ui: &mut egui::Ui, result: &EstimateResult) {
-    subsection_label(ui, "Pareto 기술 상세");
-    egui::ScrollArea::horizontal()
-        .auto_shrink([false, true])
-        .show(ui, |ui| {
-            egui::Grid::new("pareto-technology-table")
-                .striped(true)
-                .min_col_width(64.0)
-                .show(ui, |ui| {
-                    ui.strong("구분");
-                    ui.strong("벽체");
-                    ui.strong("지붕");
-                    ui.strong("바닥");
-                    ui.strong("창호");
-                    for measure in BinaryRetrofitMeasure::ALL {
-                        ui.strong(measure.label());
-                    }
-                    ui.end_row();
-
-                    for (index, item) in result.options.iter().enumerate() {
-                        ui.label(pareto_point_label(&item.label, index));
-                        ui.label(envelope_level_label(item.spec.wall));
-                        ui.label(envelope_level_label(item.spec.roof));
-                        ui.label(envelope_level_label(item.spec.floor));
-                        ui.label(window_level_label(item.spec.window));
-                        for measure in BinaryRetrofitMeasure::ALL {
-                            ui.label(if item.spec.is_enabled(measure) {
-                                "✓"
-                            } else {
-                                "-"
-                            });
+                        if include_incremental {
+                            pareto_technology_cells(ui, item.spec);
                         }
                         ui.end_row();
                     }
                 });
         });
+}
+
+#[derive(Debug, Clone, Copy)]
+struct TableWidths {
+    before: f32,
+    after: f32,
+    reduction: f32,
+    rate: f32,
+    std: f32,
+    cost: f32,
+    efficiency: f32,
+}
+
+fn pareto_technology_headers(ui: &mut egui::Ui) {
+    centered_header(ui, "벽", 34.0);
+    centered_header(ui, "지", 34.0);
+    centered_header(ui, "바", 34.0);
+    centered_header(ui, "창", 34.0);
+    for measure in BinaryRetrofitMeasure::ALL {
+        centered_header(ui, binary_measure_short_label(measure), 40.0);
+    }
+}
+
+fn pareto_technology_cells(ui: &mut egui::Ui, spec: RetrofitSpec) {
+    centered_cell(ui, envelope_level_label(spec.wall), 34.0);
+    centered_cell(ui, envelope_level_label(spec.roof), 34.0);
+    centered_cell(ui, envelope_level_label(spec.floor), 34.0);
+    centered_cell(ui, window_level_label(spec.window), 34.0);
+    for measure in BinaryRetrofitMeasure::ALL {
+        centered_cell(ui, if spec.is_enabled(measure) { "Y" } else { "-" }, 40.0);
+    }
+}
+
+fn binary_measure_short_label(measure: BinaryRetrofitMeasure) -> &'static str {
+    match measure {
+        BinaryRetrofitMeasure::Cooling => "냉",
+        BinaryRetrofitMeasure::Heating => "난",
+        BinaryRetrofitMeasure::Hx => "환",
+        BinaryRetrofitMeasure::Lights => "조명",
+        BinaryRetrofitMeasure::HwBoiler => "급탕",
+        BinaryRetrofitMeasure::CoolRoof => "쿨",
+        BinaryRetrofitMeasure::Blind => "블",
+        BinaryRetrofitMeasure::Pv => "PV",
+    }
 }
 
 fn option_row(
@@ -1927,6 +1981,7 @@ fn option_row(
     show_efficiency: bool,
     efficiency: Option<f64>,
     max_efficiency: f64,
+    widths: TableWidths,
 ) {
     let after = metric_display_value(metric, item.after.mean, area_m2);
     let reduction = metric_display_value(metric, item.reduction.mean, area_m2);
@@ -1937,25 +1992,24 @@ fn option_row(
         ui.label(row_label);
     });
     if full {
-        numeric_cell(ui, format_number(before), 92.0);
-        numeric_cell(ui, format_number(after), 92.0);
-        numeric_cell(ui, format_number(reduction), 104.0);
-        numeric_cell(ui, format_percent(rate), 76.0);
-        numeric_cell(ui, format_number(std), 104.0);
-        numeric_cell(ui, format_cost(item.cost), 112.0);
+        numeric_cell(ui, format_number(before), widths.before);
+        numeric_cell(ui, format_number(after), widths.after);
+        numeric_cell(ui, format_number(reduction), widths.reduction);
+        numeric_cell(ui, format_percent(rate), widths.rate);
+        numeric_cell(ui, format_number(std), widths.std);
+        numeric_cell(ui, format_cost(item.cost), widths.cost);
         if show_efficiency {
             if let Some(efficiency) = efficiency {
-                efficiency_cell(ui, efficiency, max_efficiency, 220.0);
+                efficiency_cell(ui, efficiency, max_efficiency, widths.efficiency);
             } else {
-                numeric_cell(ui, "-", 220.0);
+                numeric_cell(ui, "-", widths.efficiency);
             }
         }
     } else {
-        numeric_cell(ui, format_number(reduction), 104.0);
-        numeric_cell(ui, format_percent(rate), 76.0);
-        numeric_cell(ui, format_cost(item.cost), 112.0);
+        numeric_cell(ui, format_number(reduction), widths.reduction);
+        numeric_cell(ui, format_percent(rate), widths.rate);
+        numeric_cell(ui, format_cost(item.cost), widths.cost);
     }
-    ui.end_row();
 }
 
 fn summary_option_row(
