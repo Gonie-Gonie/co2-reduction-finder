@@ -777,13 +777,13 @@ impl Co2App {
                             .striped(true)
                             .min_col_width(88.0)
                             .show(ui, |ui| {
-                                ui.strong("구분");
-                                numeric_header(ui, &format!("전 [{}]", factor.unit), 92.0);
-                                numeric_header(ui, &format!("후 [{}]", factor.unit), 92.0);
-                                numeric_header(ui, &format!("감축 [{}]", factor.unit), 104.0);
-                                numeric_header(ui, "감축률", 76.0);
-                                numeric_header(ui, &format!("표준편차 [{}]", factor.unit), 104.0);
-                                numeric_header(ui, "공사비", 112.0);
+                                plain_table_header(ui, "구분", 128.0);
+                                metric_table_header(ui, "전", factor.unit, 92.0);
+                                metric_table_header(ui, "후", factor.unit, 92.0);
+                                metric_table_header(ui, "감축", factor.unit, 104.0);
+                                plain_table_header(ui, "감축률", 76.0);
+                                metric_table_header(ui, "표준편차", factor.unit, 104.0);
+                                plain_table_header(ui, "공사비", 112.0);
                                 ui.end_row();
 
                                 if let Some(result) = &self.user_result {
@@ -797,7 +797,7 @@ impl Co2App {
                                         result.baseline.std,
                                         self.area_m2,
                                     );
-                                    ui.strong("리모델링 이전");
+                                    row_label_cell(ui, "리모델링 이전", 128.0);
                                     numeric_cell(ui, format_number(before), 92.0);
                                     numeric_cell(ui, "-", 92.0);
                                     numeric_cell(ui, "-", 104.0);
@@ -816,7 +816,7 @@ impl Co2App {
                                         );
                                     }
                                 } else {
-                                    ui.label("결과 없음");
+                                    row_label_cell(ui, "결과 없음", 128.0);
                                     numeric_cell(ui, "-", 92.0);
                                     numeric_cell(ui, "-", 92.0);
                                     numeric_cell(ui, "-", 104.0);
@@ -1107,23 +1107,63 @@ fn delete_icon_button(ui: &mut egui::Ui, enabled: bool) -> egui::Response {
 
 fn numeric_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     let text = text.into();
-    ui.allocate_ui_with_layout(
-        Vec2::new(width, 18.0),
-        egui::Layout::right_to_left(egui::Align::Center),
-        |ui| {
-            ui.label(text);
-        },
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
+    ui.painter_at(rect).text(
+        Pos2::new(rect.right() - 3.0, rect.center().y),
+        Align2::RIGHT_CENTER,
+        text,
+        egui::FontId::proportional(12.0),
+        TEXT_COLOR,
     );
 }
 
-fn numeric_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
+fn table_header(ui: &mut egui::Ui, title: &str, unit: Option<&str>, width: f32) {
+    let height = if unit.is_some() { 32.0 } else { 24.0 };
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, height), Sense::hover());
+    let painter = ui.painter_at(rect);
+    if let Some(unit) = unit {
+        painter.text(
+            Pos2::new(rect.center().x, rect.center().y - 7.0),
+            Align2::CENTER_CENTER,
+            title,
+            egui::FontId::proportional(12.0),
+            TEXT_COLOR,
+        );
+        painter.text(
+            Pos2::new(rect.center().x, rect.center().y + 7.0),
+            Align2::CENTER_CENTER,
+            format!("[{unit}]"),
+            egui::FontId::proportional(11.0),
+            MUTED_TEXT,
+        );
+    } else {
+        painter.text(
+            rect.center(),
+            Align2::CENTER_CENTER,
+            title,
+            egui::FontId::proportional(12.0),
+            TEXT_COLOR,
+        );
+    }
+}
+
+fn metric_table_header(ui: &mut egui::Ui, title: &str, unit: &str, width: f32) {
+    table_header(ui, title, Some(unit), width);
+}
+
+fn plain_table_header(ui: &mut egui::Ui, title: &str, width: f32) {
+    table_header(ui, title, None, width);
+}
+
+fn row_label_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     let text = text.into();
-    ui.allocate_ui_with_layout(
-        Vec2::new(width, 18.0),
-        egui::Layout::right_to_left(egui::Align::Center),
-        |ui| {
-            ui.strong(text);
-        },
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
+    ui.painter_at(rect).text(
+        Pos2::new(rect.left() + 3.0, rect.center().y),
+        Align2::LEFT_CENTER,
+        text,
+        egui::FontId::proportional(12.0),
+        TEXT_COLOR,
     );
 }
 
@@ -1881,13 +1921,15 @@ fn result_table(
     include_incremental: bool,
 ) {
     let factor = metric.factor();
-    let before_width = if include_incremental { 76.0 } else { 92.0 };
-    let after_width = if include_incremental { 76.0 } else { 92.0 };
-    let reduction_width = if include_incremental { 82.0 } else { 104.0 };
+    let label_width = if include_incremental { 46.0 } else { 128.0 };
+    let before_width = if include_incremental { 72.0 } else { 92.0 };
+    let after_width = if include_incremental { 72.0 } else { 92.0 };
+    let reduction_width = if include_incremental { 76.0 } else { 104.0 };
     let rate_width = if include_incremental { 58.0 } else { 76.0 };
-    let std_width = if include_incremental { 82.0 } else { 104.0 };
-    let cost_width = if include_incremental { 92.0 } else { 112.0 };
-    let efficiency_width = 136.0;
+    let std_width = if include_incremental { 76.0 } else { 104.0 };
+    let cost_width = if include_incremental { 96.0 } else { 112.0 };
+    let efficiency_width = 118.0;
+    let efficiency_unit = format!("{}/억원", factor.unit);
     egui::ScrollArea::horizontal()
         .auto_shrink([false, true])
         .show(ui, |ui| {
@@ -1896,19 +1938,15 @@ fn result_table(
                 .min_col_width(if include_incremental { 32.0 } else { 86.0 })
                 .spacing(Vec2::new(6.0, 4.0))
                 .show(ui, |ui| {
-                    ui.strong("구분");
-                    numeric_header(ui, &format!("전 [{}]", factor.unit), before_width);
-                    numeric_header(ui, &format!("후 [{}]", factor.unit), after_width);
-                    numeric_header(ui, &format!("감축 [{}]", factor.unit), reduction_width);
-                    numeric_header(ui, "감축률", rate_width);
-                    numeric_header(ui, &format!("표준편차 [{}]", factor.unit), std_width);
-                    numeric_header(ui, "공사비", cost_width);
+                    plain_table_header(ui, "구분", label_width);
+                    metric_table_header(ui, "전", factor.unit, before_width);
+                    metric_table_header(ui, "후", factor.unit, after_width);
+                    metric_table_header(ui, "감축", factor.unit, reduction_width);
+                    plain_table_header(ui, "감축률", rate_width);
+                    metric_table_header(ui, "표준편차", factor.unit, std_width);
+                    plain_table_header(ui, "공사비", cost_width);
                     if include_incremental {
-                        numeric_header(
-                            ui,
-                            &format!("효율 [{}/억원]", factor.unit),
-                            efficiency_width,
-                        );
+                        metric_table_header(ui, "효율", &efficiency_unit, efficiency_width);
                         pareto_technology_headers(ui);
                     }
                     ui.end_row();
@@ -1947,6 +1985,7 @@ fn result_table(
                             efficiency,
                             max_efficiency,
                             TableWidths {
+                                label: label_width,
                                 before: before_width,
                                 after: after_width,
                                 reduction: reduction_width,
@@ -1967,6 +2006,7 @@ fn result_table(
 
 #[derive(Debug, Clone, Copy)]
 struct TableWidths {
+    label: f32,
     before: f32,
     after: f32,
     reduction: f32,
@@ -1977,25 +2017,49 @@ struct TableWidths {
 }
 
 fn pareto_technology_headers(ui: &mut egui::Ui) {
-    centered_header(ui, "벽", 34.0);
-    centered_header(ui, "지", 34.0);
-    centered_header(ui, "바", 34.0);
-    centered_header(ui, "창호", 58.0);
+    centered_header(ui, "벽체", PARETO_TECH_COL_WIDTH);
+    centered_header(ui, "지붕", PARETO_TECH_COL_WIDTH);
+    centered_header(ui, "바닥", PARETO_TECH_COL_WIDTH);
+    centered_header(ui, "창호", PARETO_TECH_COL_WIDTH);
     for measure in BinaryRetrofitMeasure::ALL {
-        centered_header(ui, binary_measure_short_label(measure), 40.0);
+        centered_header(
+            ui,
+            binary_measure_short_label(measure),
+            PARETO_TECH_COL_WIDTH,
+        );
     }
 }
 
 fn pareto_technology_cells(ui: &mut egui::Ui, spec: RetrofitSpec) {
-    compact_status_cell(ui, envelope_level_label(spec.wall), 34.0, spec.wall > 0);
-    compact_status_cell(ui, envelope_level_label(spec.roof), 34.0, spec.roof > 0);
-    compact_status_cell(ui, envelope_level_label(spec.floor), 34.0, spec.floor > 0);
-    compact_status_cell(ui, window_level_label(spec.window), 58.0, spec.window > 0);
+    compact_status_cell(
+        ui,
+        envelope_level_label(spec.wall),
+        PARETO_TECH_COL_WIDTH,
+        spec.wall > 0,
+    );
+    compact_status_cell(
+        ui,
+        envelope_level_label(spec.roof),
+        PARETO_TECH_COL_WIDTH,
+        spec.roof > 0,
+    );
+    compact_status_cell(
+        ui,
+        envelope_level_label(spec.floor),
+        PARETO_TECH_COL_WIDTH,
+        spec.floor > 0,
+    );
+    compact_status_cell(
+        ui,
+        window_level_label(spec.window),
+        PARETO_TECH_COL_WIDTH,
+        spec.window > 0,
+    );
     for measure in BinaryRetrofitMeasure::ALL {
         compact_status_cell(
             ui,
-            if spec.is_enabled(measure) { "Y" } else { "-" },
-            40.0,
+            if spec.is_enabled(measure) { "✓" } else { "-" },
+            PARETO_TECH_COL_WIDTH,
             spec.is_enabled(measure),
         );
     }
@@ -2003,13 +2067,13 @@ fn pareto_technology_cells(ui: &mut egui::Ui, spec: RetrofitSpec) {
 
 fn binary_measure_short_label(measure: BinaryRetrofitMeasure) -> &'static str {
     match measure {
-        BinaryRetrofitMeasure::Cooling => "냉",
-        BinaryRetrofitMeasure::Heating => "난",
-        BinaryRetrofitMeasure::Hx => "환",
+        BinaryRetrofitMeasure::Cooling => "냉방",
+        BinaryRetrofitMeasure::Heating => "난방",
+        BinaryRetrofitMeasure::Hx => "환기",
         BinaryRetrofitMeasure::Lights => "조명",
         BinaryRetrofitMeasure::HwBoiler => "급탕",
-        BinaryRetrofitMeasure::CoolRoof => "쿨",
-        BinaryRetrofitMeasure::Blind => "블",
+        BinaryRetrofitMeasure::CoolRoof => "쿨루프",
+        BinaryRetrofitMeasure::Blind => "일사",
         BinaryRetrofitMeasure::Pv => "PV",
     }
 }
@@ -2033,7 +2097,7 @@ fn option_row(
     let rate = reduction_rate(before, reduction);
 
     ui.push_id(item.id, |ui| {
-        ui.label(row_label);
+        row_label_cell(ui, row_label, widths.label);
     });
     if full {
         numeric_cell(ui, format_number(before), widths.before);
@@ -2069,7 +2133,7 @@ fn summary_option_row(
     let rate = reduction_rate(before, reduction);
 
     ui.push_id(item.id, |ui| {
-        ui.label(short_label(&item.label, 22));
+        row_label_cell(ui, short_label(&item.label, 22), 128.0);
     });
     numeric_cell(ui, format_number(before), 92.0);
     numeric_cell(ui, format_number(after), 92.0);
@@ -2568,6 +2632,7 @@ fn default_building_choices() -> Vec<BuildingChoice> {
 const ENVELOPE_LEVELS: [(u8, &str); 2] = [(1, "현행"), (2, "강화")];
 const WINDOW_LEVELS: [(u8, &str); 3] = [(3, "현행"), (2, "2등급"), (1, "1등급")];
 const OPTION_INPUT_COL_WIDTH: f32 = 124.0;
+const PARETO_TECH_COL_WIDTH: f32 = 56.0;
 
 fn apply_theme(ctx: &egui::Context) {
     let mut fonts = FontDefinitions::default();
