@@ -1,6 +1,6 @@
 [package]
 name = "co2-reduction-finder"
-version = "0.1.8"
+version = "0.2.0"
 description = "Native Rust dashboard app for CO2 reduction coefficient lookup"
 authors = ["CO2 Reduction Finder Team"]
 edition = "2024"

@@ -1603,7 +1603,7 @@ fn efficiency_bar_color() -> Color32 {
 
 fn chart_table_width(chart_width: f32, includes_cost: bool, includes_efficiency: bool) -> f32 {
     let preferred = if includes_cost && includes_efficiency {
-        (chart_width * 0.46).clamp(350.0, 430.0)
+        (chart_width * 0.52).clamp(430.0, 520.0)
     } else if includes_cost {
         (chart_width * 0.44).clamp(330.0, 420.0)
     } else {
@@ -1630,9 +1630,9 @@ fn chart_table_columns(
     if includes_cost && includes_efficiency {
         ChartTableColumns {
             label: rect.left() + 14.0,
-            value: plot.left() - 174.0,
-            rate: plot.left() - 118.0,
-            cost: Some(plot.left() - 64.0),
+            value: plot.left() - 275.0,
+            rate: plot.left() - 200.0,
+            cost: Some(plot.left() - 90.0),
             efficiency: Some(plot.left() - 12.0),
         }
     } else if includes_cost {
