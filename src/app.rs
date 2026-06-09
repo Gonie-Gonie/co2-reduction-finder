@@ -641,17 +641,23 @@ impl Co2App {
             ui.add_space(8.0);
 
             subsection_label(ui, "감축량 및 공사비");
+            let baseline =
+                metric_display_value(self.selected_metric, result.baseline.mean, self.area_m2);
             let bars = result
                 .options
                 .iter()
-                .map(|item| BarItem {
-                    label: item.label.clone(),
-                    value: metric_display_value(
+                .map(|item| {
+                    let value = metric_display_value(
                         self.selected_metric,
                         item.reduction.mean,
                         self.area_m2,
-                    ),
-                    cost: Some(item.cost),
+                    );
+                    BarItem {
+                        label: item.label.clone(),
+                        value,
+                        rate: reduction_rate(baseline, value),
+                        cost: Some(item.cost),
+                    }
                 })
                 .collect::<Vec<_>>();
             horizontal_bar_chart(
@@ -681,6 +687,7 @@ impl Co2App {
                         item.reduction.mean,
                         self.area_m2,
                     ),
+                    rate: 0.0,
                     cost: None,
                 })
                 .map(|bar| EffectBarItem {
@@ -798,11 +805,11 @@ impl Co2App {
                                         self.area_m2,
                                     );
                                     row_label_cell(ui, "리모델링 이전", 128.0);
-                                    numeric_cell(ui, format_number(before), 92.0);
+                                    numeric_cell(ui, format_table_number(before), 92.0);
                                     numeric_cell(ui, "-", 92.0);
                                     numeric_cell(ui, "-", 104.0);
                                     numeric_cell(ui, "-", 76.0);
-                                    numeric_cell(ui, format_number(before_std), 104.0);
+                                    numeric_cell(ui, format_table_number(before_std), 104.0);
                                     numeric_cell(ui, "-", 112.0);
                                     ui.end_row();
 
@@ -835,6 +842,7 @@ impl Co2App {
 struct BarItem {
     label: String,
     value: f64,
+    rate: f64,
     cost: Option<u64>,
 }
 
@@ -1112,7 +1120,7 @@ fn numeric_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
         Pos2::new(rect.right() - 3.0, rect.center().y),
         Align2::RIGHT_CENTER,
         text,
-        egui::FontId::proportional(12.0),
+        egui::FontId::monospace(12.0),
         TEXT_COLOR,
     );
 }
@@ -1209,17 +1217,17 @@ fn efficiency_cell(ui: &mut egui::Ui, efficiency: f64, max_efficiency: f64, widt
     let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
     let painter = ui.painter_at(rect);
     let bar_rect = rect.shrink2(Vec2::new(2.0, 4.0));
-    painter.rect_filled(bar_rect, 2.0, Color32::from_rgb(232, 238, 238));
+    painter.rect_filled(bar_rect, 2.0, Color32::from_rgb(242, 247, 247));
     if max_efficiency > 0.0 && efficiency.is_finite() {
         let fill_width = bar_rect.width() * (efficiency / max_efficiency).clamp(0.0, 1.0) as f32;
         let fill_rect = Rect::from_min_size(bar_rect.min, Vec2::new(fill_width, bar_rect.height()));
-        painter.rect_filled(fill_rect, 2.0, ACCENT);
+        painter.rect_filled(fill_rect, 2.0, Color32::from_rgb(204, 229, 225));
     }
     painter.text(
         Pos2::new(rect.right() - 4.0, rect.center().y),
         Align2::RIGHT_CENTER,
-        format_number(efficiency),
-        egui::FontId::proportional(12.0),
+        format_table_number(efficiency),
+        egui::FontId::monospace(12.0),
         TEXT_COLOR,
     );
 }
@@ -1388,7 +1396,7 @@ fn horizontal_bar_chart(
     min_height: f32,
 ) {
     ui.push_id(id, |ui| {
-        let height = min_height.max(items.len() as f32 * 26.0 + 42.0);
+        let height = min_height.max(items.len() as f32 * 28.0 + 64.0);
         let desired = Vec2::new(chart_available_width(ui), height);
         let (rect, _) = ui.allocate_exact_size(desired, Sense::hover());
         let painter = ui.painter_at(rect);
@@ -1403,7 +1411,8 @@ fn horizontal_bar_chart(
             .map(|item| item.value.abs())
             .fold(0.0_f64, f64::max);
         let scale = chart_value_scale(unit, max_abs);
-        let plot = plot_rect(rect, 132.0, 172.0, 28.0, 46.0);
+        let table_width = chart_table_width(rect.width(), true);
+        let plot = plot_rect(rect, table_width, 132.0, 48.0, 46.0);
         let min_value = items
             .iter()
             .map(|item| item.value / scale.divisor)
@@ -1427,6 +1436,13 @@ fn horizontal_bar_chart(
                 MUTED_TEXT,
             );
         }
+        chart_table_header(
+            &painter,
+            rect,
+            plot,
+            &format!("감축량 [{}]", scale.unit),
+            Some("공사비"),
+        );
         painter.line_segment(
             [
                 Pos2::new(plot.left(), plot.bottom()),
@@ -1470,45 +1486,145 @@ fn horizontal_bar_chart(
                 3.0,
                 color,
             );
-            painter.text(
-                Pos2::new(rect.left() + 14.0, y),
-                Align2::LEFT_CENTER,
+            chart_table_row(
+                &painter,
+                rect,
+                plot,
+                y,
                 short_label(&item.label, 15),
-                egui::FontId::proportional(12.0),
-                TEXT_COLOR,
-            );
-            let value_label = format_number(display_value);
-            let label_text = match item.cost {
-                Some(cost) => format!("{value_label} / {}", format_cost(cost)),
-                None => value_label,
-            };
-            let estimated_label_width = label_text.chars().count() as f32 * 7.0;
-            let (label_x, label_align, label_color) = if item.value >= 0.0 {
-                let x = right + 8.0;
-                if display_value >= x_axis.max * 0.65 {
-                    (plot.right() - 8.0, Align2::RIGHT_CENTER, Color32::WHITE)
-                } else if x + estimated_label_width > rect.right() - 10.0 {
-                    (rect.right() - 10.0, Align2::RIGHT_CENTER, TEXT_COLOR)
-                } else {
-                    (x, Align2::LEFT_CENTER, TEXT_COLOR)
-                }
-            } else {
-                let x = left - 8.0;
-                if x - estimated_label_width < rect.left() + 10.0 {
-                    (rect.left() + 10.0, Align2::LEFT_CENTER, TEXT_COLOR)
-                } else {
-                    (x, Align2::RIGHT_CENTER, TEXT_COLOR)
-                }
-            };
-            painter.text(
-                Pos2::new(label_x, y),
-                label_align,
-                label_text,
-                egui::FontId::proportional(12.0),
-                label_color,
+                format_chart_number(display_value),
+                format_percent(item.rate),
+                item.cost.map(format_cost),
             );
         }
     });
+}
+
+fn chart_table_width(chart_width: f32, includes_cost: bool) -> f32 {
+    let preferred = if includes_cost {
+        (chart_width * 0.44).clamp(330.0, 420.0)
+    } else {
+        (chart_width * 0.36).clamp(220.0, 270.0)
+    };
+    preferred.min((chart_width - 180.0).max(180.0))
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ChartTableColumns {
+    label: f32,
+    value: f32,
+    rate: f32,
+    cost: Option<f32>,
+}
+
+fn chart_table_columns(rect: Rect, plot: Rect, includes_cost: bool) -> ChartTableColumns {
+    if includes_cost {
+        ChartTableColumns {
+            label: rect.left() + 14.0,
+            value: plot.left() - 162.0,
+            rate: plot.left() - 92.0,
+            cost: Some(plot.left() - 12.0),
+        }
+    } else {
+        ChartTableColumns {
+            label: rect.left() + 14.0,
+            value: plot.left() - 74.0,
+            rate: plot.left() - 12.0,
+            cost: None,
+        }
+    }
+}
+
+fn chart_table_header(
+    painter: &egui::Painter,
+    rect: Rect,
+    plot: Rect,
+    value_header: &str,
+    cost_header: Option<&str>,
+) {
+    let columns = chart_table_columns(rect, plot, cost_header.is_some());
+    let y = rect.top() + 24.0;
+    painter.text(
+        Pos2::new(columns.label, y),
+        Align2::LEFT_CENTER,
+        "항목",
+        egui::FontId::proportional(11.0),
+        MUTED_TEXT,
+    );
+    painter.text(
+        Pos2::new(columns.value, y),
+        Align2::RIGHT_CENTER,
+        value_header,
+        egui::FontId::proportional(11.0),
+        MUTED_TEXT,
+    );
+    painter.text(
+        Pos2::new(columns.rate, y),
+        Align2::RIGHT_CENTER,
+        "감축률",
+        egui::FontId::proportional(11.0),
+        MUTED_TEXT,
+    );
+    if let (Some(cost_x), Some(cost_header)) = (columns.cost, cost_header) {
+        painter.text(
+            Pos2::new(cost_x, y),
+            Align2::RIGHT_CENTER,
+            cost_header,
+            egui::FontId::proportional(11.0),
+            MUTED_TEXT,
+        );
+    }
+    let line_y = plot.top() - 8.0;
+    painter.line_segment(
+        [
+            Pos2::new(rect.left() + 12.0, line_y),
+            Pos2::new(plot.left() - 8.0, line_y),
+        ],
+        Stroke::new(1.0, GRID_COLOR),
+    );
+}
+
+fn chart_table_row(
+    painter: &egui::Painter,
+    rect: Rect,
+    plot: Rect,
+    y: f32,
+    label: String,
+    value: String,
+    rate: String,
+    cost: Option<String>,
+) {
+    let columns = chart_table_columns(rect, plot, cost.is_some());
+    painter.text(
+        Pos2::new(columns.label, y),
+        Align2::LEFT_CENTER,
+        label,
+        egui::FontId::proportional(12.0),
+        TEXT_COLOR,
+    );
+    painter.text(
+        Pos2::new(columns.value, y),
+        Align2::RIGHT_CENTER,
+        value,
+        egui::FontId::monospace(11.5),
+        TEXT_COLOR,
+    );
+    painter.text(
+        Pos2::new(columns.rate, y),
+        Align2::RIGHT_CENTER,
+        rate,
+        egui::FontId::monospace(11.5),
+        TEXT_COLOR,
+    );
+    if let (Some(cost_x), Some(cost)) = (columns.cost, cost) {
+        painter.text(
+            Pos2::new(cost_x, y),
+            Align2::RIGHT_CENTER,
+            cost,
+            egui::FontId::monospace(11.5),
+            TEXT_COLOR,
+        );
+    }
 }
 
 fn single_effect_bar_chart(
@@ -1520,7 +1636,7 @@ fn single_effect_bar_chart(
     min_height: f32,
 ) {
     ui.push_id(id, |ui| {
-        let height = min_height.max(items.len() as f32 * 28.0 + 74.0);
+        let height = min_height.max(items.len() as f32 * 28.0 + 90.0);
         let desired = Vec2::new(chart_available_width(ui), height);
         let (rect, _) = ui.allocate_exact_size(desired, Sense::hover());
         let painter = ui.painter_at(rect);
@@ -1536,7 +1652,8 @@ fn single_effect_bar_chart(
             .fold(0.0_f64, f64::max);
         let scale = chart_value_scale(unit, max_reduction);
         let x_axis = axis_from_zero(max_reduction / scale.divisor);
-        let plot = plot_rect(rect, 144.0, 152.0, 46.0, 54.0);
+        let table_width = chart_table_width(rect.width(), false);
+        let plot = plot_rect(rect, table_width, 34.0, 58.0, 54.0);
 
         for tick in ticks(x_axis, 5) {
             let x = map_x(plot, x_axis, tick);
@@ -1560,6 +1677,13 @@ fn single_effect_bar_chart(
                 MUTED_TEXT,
             );
         }
+        chart_table_header(
+            &painter,
+            rect,
+            plot,
+            &format!("감축량 [{}]", scale.unit),
+            None,
+        );
 
         painter.line_segment(
             [
@@ -1603,33 +1727,15 @@ fn single_effect_bar_chart(
                 3.0,
                 ACCENT,
             );
-            painter.text(
-                Pos2::new(rect.left() + 14.0, y),
-                Align2::LEFT_CENTER,
+            chart_table_row(
+                &painter,
+                rect,
+                plot,
+                y,
                 short_label(&item.label, 17),
-                egui::FontId::proportional(12.0),
-                TEXT_COLOR,
-            );
-            let label_text = format!(
-                "{} / {}",
-                format_number(display_reduction),
-                format_percent(item.rate)
-            );
-            let estimated_label_width = label_text.chars().count() as f32 * 7.0;
-            let label_x = value_x + 8.0;
-            let (label_x, label_align, label_color) = if display_reduction >= x_axis.max * 0.65 {
-                (plot.right() - 8.0, Align2::RIGHT_CENTER, Color32::WHITE)
-            } else if label_x + estimated_label_width > rect.right() - 10.0 {
-                (rect.right() - 10.0, Align2::RIGHT_CENTER, TEXT_COLOR)
-            } else {
-                (label_x, Align2::LEFT_CENTER, TEXT_COLOR)
-            };
-            painter.text(
-                Pos2::new(label_x, y),
-                label_align,
-                label_text,
-                egui::FontId::proportional(12.0),
-                label_color,
+                format_chart_number(display_reduction),
+                format_percent(item.rate),
+                None,
             );
         }
     });
@@ -1692,17 +1798,17 @@ fn scatter_chart(
             .collect::<Vec<_>>();
         points.sort_by(|(_, a, _), (_, b, _)| a.cost.cmp(&b.cost));
 
-        if points.len() >= 2 {
-            let line_points = points
-                .iter()
-                .map(|(_, _, point)| *point)
-                .collect::<Vec<_>>();
+        let line_points = points
+            .iter()
+            .map(|(_, _, point)| *point)
+            .collect::<Vec<_>>();
+        if line_points.len() >= 2 {
             painter.add(Shape::line(
                 line_points.clone(),
                 Stroke::new(4.0, Color32::from_rgba_premultiplied(40, 122, 112, 42)),
             ));
             painter.add(Shape::line(
-                line_points,
+                line_points.clone(),
                 Stroke::new(2.0, Color32::from_rgb(54, 137, 130)),
             ));
         }
@@ -1718,8 +1824,12 @@ fn scatter_chart(
         for (index, item, point) in &points {
             let label = pareto_point_label(&item.label, *index);
             if let Some(label_rect) =
-                scatter_label_rect(*point, &label, rect, plot, &used_label_rects)
+                scatter_label_rect(*point, &label, rect, plot, &used_label_rects, &line_points)
             {
+                painter.line_segment(
+                    [*point, label_connector_anchor(label_rect, *point)],
+                    Stroke::new(1.0, Color32::from_rgb(134, 160, 162)),
+                );
                 painter.rect_filled(label_rect, 3.0, Color32::from_white_alpha(238));
                 painter.rect_stroke(
                     label_rect,
@@ -1794,14 +1904,14 @@ fn pareto_hover_text(
     format!(
         "{}\n전: {} {}\n후: {} {}\n감축: {} {} ({})\n표준편차: {} {}\n공사비: {}\n요소기술: {}",
         pareto_point_label(&item.label, index),
-        format_number(before),
+        format_table_number(before),
         factor.unit,
-        format_number(after),
+        format_table_number(after),
         factor.unit,
-        format_number(reduction),
+        format_table_number(reduction),
         factor.unit,
         format_percent(reduction_rate(before, reduction)),
-        format_number(std),
+        format_table_number(std),
         factor.unit,
         format_cost(item.cost),
         retrofit_technology_summary(item.spec),
@@ -1858,6 +1968,7 @@ fn scatter_label_rect(
     chart_rect: Rect,
     plot: Rect,
     used_rects: &[Rect],
+    line_points: &[Pos2],
 ) -> Option<Rect> {
     let width = (label.chars().count() as f32 * 7.0 + 14.0).max(26.0);
     let size = Vec2::new(width, 18.0);
@@ -1866,23 +1977,39 @@ fn scatter_label_rect(
         Pos2::new(plot.right(), plot.bottom() - 2.0),
     );
     let offsets = [
-        Vec2::new(8.0, -26.0),
-        Vec2::new(8.0, 8.0),
-        Vec2::new(-width - 8.0, -26.0),
-        Vec2::new(-width - 8.0, 8.0),
-        Vec2::new(-width / 2.0, -34.0),
-        Vec2::new(-width / 2.0, 14.0),
+        Vec2::new(-width / 2.0, -42.0),
+        Vec2::new(12.0, -34.0),
+        Vec2::new(-width - 12.0, -34.0),
+        Vec2::new(-width / 2.0, 24.0),
+        Vec2::new(12.0, 16.0),
+        Vec2::new(-width - 12.0, 16.0),
     ];
 
     for offset in offsets {
         let rect = Rect::from_min_size(point + offset, size);
-        if rect_inside(bounds, rect) && !used_rects.iter().any(|used| rects_intersect(*used, rect))
+        if rect_inside(bounds, rect)
+            && !rect_intersects_polyline(rect.expand(2.0), line_points)
+            && !used_rects.iter().any(|used| rects_intersect(*used, rect))
         {
             return Some(rect);
         }
     }
 
     None
+}
+
+fn label_connector_anchor(label_rect: Rect, point: Pos2) -> Pos2 {
+    Pos2::new(
+        point.x.clamp(label_rect.left(), label_rect.right()),
+        point.y.clamp(label_rect.top(), label_rect.bottom()),
+    )
+}
+
+fn rect_intersects_polyline(rect: Rect, points: &[Pos2]) -> bool {
+    points.windows(2).any(|segment| {
+        let segment_rect = Rect::from_two_pos(segment[0], segment[1]).expand(3.0);
+        rects_intersect(rect, segment_rect)
+    })
 }
 
 fn rect_inside(bounds: Rect, rect: Rect) -> bool {
@@ -2100,11 +2227,11 @@ fn option_row(
         row_label_cell(ui, row_label, widths.label);
     });
     if full {
-        numeric_cell(ui, format_number(before), widths.before);
-        numeric_cell(ui, format_number(after), widths.after);
-        numeric_cell(ui, format_number(reduction), widths.reduction);
+        numeric_cell(ui, format_table_number(before), widths.before);
+        numeric_cell(ui, format_table_number(after), widths.after);
+        numeric_cell(ui, format_table_number(reduction), widths.reduction);
         numeric_cell(ui, format_percent(rate), widths.rate);
-        numeric_cell(ui, format_number(std), widths.std);
+        numeric_cell(ui, format_table_number(std), widths.std);
         numeric_cell(ui, format_cost(item.cost), widths.cost);
         if show_efficiency {
             if let Some(efficiency) = efficiency {
@@ -2114,7 +2241,7 @@ fn option_row(
             }
         }
     } else {
-        numeric_cell(ui, format_number(reduction), widths.reduction);
+        numeric_cell(ui, format_table_number(reduction), widths.reduction);
         numeric_cell(ui, format_percent(rate), widths.rate);
         numeric_cell(ui, format_cost(item.cost), widths.cost);
     }
@@ -2135,11 +2262,11 @@ fn summary_option_row(
     ui.push_id(item.id, |ui| {
         row_label_cell(ui, short_label(&item.label, 22), 128.0);
     });
-    numeric_cell(ui, format_number(before), 92.0);
-    numeric_cell(ui, format_number(after), 92.0);
-    numeric_cell(ui, format_number(reduction), 104.0);
+    numeric_cell(ui, format_table_number(before), 92.0);
+    numeric_cell(ui, format_table_number(after), 92.0);
+    numeric_cell(ui, format_table_number(reduction), 104.0);
     numeric_cell(ui, format_percent(rate), 76.0);
-    numeric_cell(ui, format_number(std), 104.0);
+    numeric_cell(ui, format_table_number(std), 104.0);
     numeric_cell(ui, format_cost(item.cost), 112.0);
     ui.end_row();
 }
@@ -2417,6 +2544,18 @@ fn format_number(value: f64) -> String {
     } else {
         "0".to_string()
     }
+}
+
+fn format_table_number(value: f64) -> String {
+    if value.is_finite() {
+        format_number_with_commas(value, 2)
+    } else {
+        "-".to_string()
+    }
+}
+
+fn format_chart_number(value: f64) -> String {
+    format_table_number(value)
 }
 
 fn format_tick(value: f64) -> String {
