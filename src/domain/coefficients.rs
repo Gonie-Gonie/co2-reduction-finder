@@ -148,7 +148,7 @@ impl RetrofitSpec {
             parts.push(format!("바닥{}", self.floor));
         }
         if self.window > 0 {
-            parts.push(format!("창{}", self.window));
+            parts.push(format!("창호 {}", window_level_label(self.window)));
         }
         for measure in BinaryRetrofitMeasure::ALL {
             if self.is_enabled(measure) {
@@ -161,6 +161,15 @@ impl RetrofitSpec {
         } else {
             parts.join(" ")
         }
+    }
+}
+
+fn window_level_label(level: u8) -> &'static str {
+    match level {
+        1 => "1등급",
+        2 => "2등급",
+        3 => "현행",
+        _ => "-",
     }
 }
 
@@ -1462,6 +1471,34 @@ mod tests {
 
         assert_eq!(cost_per_m2, 614_908);
         assert_eq!(total_cost, 614_908_244);
+    }
+
+    #[test]
+    fn labels_window_levels_by_improvement_order() {
+        assert_eq!(
+            RetrofitSpec {
+                window: 3,
+                ..Default::default()
+            }
+            .summary_label(),
+            "창호 현행"
+        );
+        assert_eq!(
+            RetrofitSpec {
+                window: 2,
+                ..Default::default()
+            }
+            .summary_label(),
+            "창호 2등급"
+        );
+        assert_eq!(
+            RetrofitSpec {
+                window: 1,
+                ..Default::default()
+            }
+            .summary_label(),
+            "창호 1등급"
+        );
     }
 
     #[test]

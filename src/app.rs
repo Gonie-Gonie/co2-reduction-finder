@@ -461,9 +461,10 @@ impl Co2App {
                 egui::ScrollArea::horizontal().show(ui, |ui| {
                     egui::Grid::new("option-input-table")
                         .striped(true)
-                        .min_col_width(138.0)
+                        .min_col_width(OPTION_INPUT_COL_WIDTH)
+                        .spacing(Vec2::new(6.0, 4.0))
                         .show(ui, |ui| {
-                            ui.strong("항목");
+                            centered_header(ui, "항목", OPTION_INPUT_COL_WIDTH);
                             for index in 0..self.options.len() {
                                 let option = &mut self.options[index];
                                 ui.horizontal_centered(|ui| {
@@ -918,9 +919,9 @@ fn single_effect_options() -> Vec<RetrofitOption> {
         },
     );
     push(
-        "창호 1등급",
+        "창호 현행",
         RetrofitSpec {
-            window: 1,
+            window: 3,
             ..Default::default()
         },
     );
@@ -932,9 +933,9 @@ fn single_effect_options() -> Vec<RetrofitOption> {
         },
     );
     push(
-        "창호 3등급",
+        "창호 1등급",
         RetrofitSpec {
-            window: 3,
+            window: 1,
             ..Default::default()
         },
     );
@@ -1126,7 +1127,7 @@ fn numeric_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     );
 }
 
-fn centered_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
+fn centered_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     let text = text.into();
     let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
     ui.painter_at(rect).text(
@@ -1138,15 +1139,29 @@ fn centered_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
     );
 }
 
-fn centered_header(ui: &mut egui::Ui, text: impl Into<String>, width: f32) {
+fn compact_status_cell(ui: &mut egui::Ui, text: impl Into<String>, width: f32, active: bool) {
     let text = text.into();
     let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
-    ui.painter_at(rect).text(
+    let painter = ui.painter_at(rect);
+    let fill = if active {
+        Color32::from_rgb(220, 239, 236)
+    } else {
+        Color32::from_rgb(241, 244, 244)
+    };
+    let stroke = if active {
+        Stroke::new(1.0, Color32::from_rgb(119, 173, 166))
+    } else {
+        Stroke::new(1.0, Color32::from_rgb(216, 226, 226))
+    };
+    let pill = rect.shrink2(Vec2::new(2.0, 2.0));
+    painter.rect_filled(pill, 3.0, fill);
+    painter.rect_stroke(pill, 3.0, stroke, egui::StrokeKind::Inside);
+    painter.text(
         rect.center(),
         Align2::CENTER_CENTER,
         text,
-        egui::FontId::proportional(12.0),
-        TEXT_COLOR,
+        egui::FontId::proportional(11.0),
+        if active { ACCENT } else { MUTED_TEXT },
     );
 }
 
@@ -1588,7 +1603,7 @@ fn scatter_chart(
     area_m2: f64,
 ) {
     ui.push_id(id, |ui| {
-        let desired = Vec2::new(chart_available_width(ui), 260.0);
+        let desired = Vec2::new(chart_available_width(ui), 292.0);
         let (rect, response) = ui.allocate_exact_size(desired, Sense::hover());
         let painter = ui.painter_at(rect);
         chart_background(&painter, rect);
@@ -1638,15 +1653,24 @@ fn scatter_chart(
         points.sort_by(|(_, a, _), (_, b, _)| a.cost.cmp(&b.cost));
 
         if points.len() >= 2 {
+            let line_points = points
+                .iter()
+                .map(|(_, _, point)| *point)
+                .collect::<Vec<_>>();
             painter.add(Shape::line(
-                points.iter().map(|(_, _, point)| *point).collect(),
-                Stroke::new(1.6, Color32::from_rgb(92, 154, 151)),
+                line_points.clone(),
+                Stroke::new(4.0, Color32::from_rgba_premultiplied(40, 122, 112, 42)),
+            ));
+            painter.add(Shape::line(
+                line_points,
+                Stroke::new(2.0, Color32::from_rgb(54, 137, 130)),
             ));
         }
 
-        for (_, _, point) in &points {
-            painter.circle_filled(*point, 4.5, ACCENT);
-            painter.circle_stroke(*point, 4.5, Stroke::new(1.0, Color32::WHITE));
+        let total_points = points.len().max(1);
+        for (rank, (_, _, point)) in points.iter().enumerate() {
+            painter.circle_filled(*point, 5.4, pareto_point_color(rank, total_points));
+            painter.circle_stroke(*point, 5.4, Stroke::new(1.2, Color32::WHITE));
         }
 
         let mut used_label_rects = Vec::new();
@@ -1698,6 +1722,21 @@ fn pareto_point_label(label: &str, fallback_index: usize) -> String {
         .and_then(|prefix| prefix.strip_prefix("Pareto "))
         .map(|number| format!("P{}", number.trim()))
         .unwrap_or_else(|| format!("P{}", fallback_index + 1))
+}
+
+fn pareto_point_color(rank: usize, total: usize) -> Color32 {
+    let t = if total <= 1 {
+        0.0
+    } else {
+        rank as f32 / (total - 1) as f32
+    };
+    let start = (40.0, 122.0, 112.0);
+    let end = (190.0, 92.0, 72.0);
+    Color32::from_rgb(
+        lerp(start.0, end.0, t) as u8,
+        lerp(start.1, end.1, t) as u8,
+        lerp(start.2, end.2, t) as u8,
+    )
 }
 
 fn pareto_hover_text(
@@ -1766,9 +1805,9 @@ fn envelope_level_label(level: u8) -> &'static str {
 
 fn window_level_label(level: u8) -> &'static str {
     match level {
-        1 => "1",
-        2 => "2",
-        3 => "3",
+        1 => "1등급",
+        2 => "2등급",
+        3 => "현행",
         _ => "-",
     }
 }
@@ -1941,19 +1980,24 @@ fn pareto_technology_headers(ui: &mut egui::Ui) {
     centered_header(ui, "벽", 34.0);
     centered_header(ui, "지", 34.0);
     centered_header(ui, "바", 34.0);
-    centered_header(ui, "창", 34.0);
+    centered_header(ui, "창호", 58.0);
     for measure in BinaryRetrofitMeasure::ALL {
         centered_header(ui, binary_measure_short_label(measure), 40.0);
     }
 }
 
 fn pareto_technology_cells(ui: &mut egui::Ui, spec: RetrofitSpec) {
-    centered_cell(ui, envelope_level_label(spec.wall), 34.0);
-    centered_cell(ui, envelope_level_label(spec.roof), 34.0);
-    centered_cell(ui, envelope_level_label(spec.floor), 34.0);
-    centered_cell(ui, window_level_label(spec.window), 34.0);
+    compact_status_cell(ui, envelope_level_label(spec.wall), 34.0, spec.wall > 0);
+    compact_status_cell(ui, envelope_level_label(spec.roof), 34.0, spec.roof > 0);
+    compact_status_cell(ui, envelope_level_label(spec.floor), 34.0, spec.floor > 0);
+    compact_status_cell(ui, window_level_label(spec.window), 58.0, spec.window > 0);
     for measure in BinaryRetrofitMeasure::ALL {
-        centered_cell(ui, if spec.is_enabled(measure) { "Y" } else { "-" }, 40.0);
+        compact_status_cell(
+            ui,
+            if spec.is_enabled(measure) { "Y" } else { "-" },
+            40.0,
+            spec.is_enabled(measure),
+        );
     }
 }
 
@@ -2389,7 +2433,7 @@ fn option_level_row(
     selector: for<'a> fn(&'a mut RetrofitSpec) -> &'a mut u8,
     levels: &[(u8, &str)],
 ) {
-    ui.strong(label);
+    centered_header(ui, label, OPTION_INPUT_COL_WIDTH);
     for option in options {
         let selected = selector(&mut option.spec);
         level_toggle_group(ui, (row_id, option.id), selected, levels);
@@ -2405,7 +2449,7 @@ fn level_toggle_group(
 ) {
     ui.push_id(id, |ui| {
         ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 3.0;
+            ui.spacing_mut().item_spacing.x = 2.0;
             for (value, item_label) in levels {
                 let is_selected = *selected == *value;
                 let text = if is_selected {
@@ -2413,8 +2457,9 @@ fn level_toggle_group(
                 } else {
                     RichText::new(*item_label).color(TEXT_COLOR)
                 };
+                let button_width = ((*item_label).chars().count() as f32 * 11.0 + 14.0).max(34.0);
                 let button = egui::Button::new(text)
-                    .min_size(Vec2::new(38.0, 22.0))
+                    .min_size(Vec2::new(button_width, 22.0))
                     .fill(if is_selected {
                         ACCENT
                     } else {
@@ -2445,7 +2490,7 @@ fn option_measure_row(
     measure: BinaryRetrofitMeasure,
     options: &mut [RetrofitOption],
 ) {
-    ui.strong(measure.label());
+    centered_header(ui, measure.label(), OPTION_INPUT_COL_WIDTH);
     for option in options {
         let mut enabled = option.spec.is_enabled(measure);
         ui.centered_and_justified(|ui| {
@@ -2521,7 +2566,8 @@ fn default_building_choices() -> Vec<BuildingChoice> {
 }
 
 const ENVELOPE_LEVELS: [(u8, &str); 2] = [(1, "현행"), (2, "강화")];
-const WINDOW_LEVELS: [(u8, &str); 3] = [(1, "1"), (2, "2"), (3, "3")];
+const WINDOW_LEVELS: [(u8, &str); 3] = [(3, "현행"), (2, "2등급"), (1, "1등급")];
+const OPTION_INPUT_COL_WIDTH: f32 = 124.0;
 
 fn apply_theme(ctx: &egui::Context) {
     let mut fonts = FontDefinitions::default();
