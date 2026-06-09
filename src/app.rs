@@ -1405,7 +1405,7 @@ fn horizontal_bar_chart(
     min_height: f32,
 ) {
     ui.push_id(id, |ui| {
-        let height = min_height.max(items.len() as f32 * 28.0 + 64.0);
+        let height = min_height.max(items.len() as f32 * 34.0 + 76.0);
         let desired = Vec2::new(chart_available_width(ui), height);
         let (rect, _) = ui.allocate_exact_size(desired, Sense::hover());
         let painter = ui.painter_at(rect);
@@ -1496,6 +1496,7 @@ fn horizontal_bar_chart(
             Stroke::new(1.2, AXIS_COLOR),
         );
         let zero_x = map_x(plot, x_axis, 0.0);
+        let efficiency_zero_x = map_x(plot, efficiency_axis, 0.0);
         painter.line_segment(
             [
                 Pos2::new(zero_x, plot.top()),
@@ -1514,6 +1515,9 @@ fn horizontal_bar_chart(
         let row_h = (plot.height() / items.len() as f32).max(20.0);
         for (index, item) in items.iter().enumerate() {
             let y = plot.top() + row_h * (index as f32 + 0.5);
+            let reduction_y = y - row_h * 0.17;
+            let efficiency_y = y + row_h * 0.17;
+            let bar_half_h = (row_h * 0.13).clamp(3.0, 6.0);
             let display_value = item.value / scale.divisor;
             let value_x = map_x(plot, x_axis, display_value);
             let left = zero_x.min(value_x);
@@ -1525,8 +1529,8 @@ fn horizontal_bar_chart(
             };
             painter.rect_filled(
                 Rect::from_min_max(
-                    Pos2::new(left, y - row_h * 0.28),
-                    Pos2::new(right.max(left + 2.0), y + row_h * 0.28),
+                    Pos2::new(left, reduction_y - bar_half_h),
+                    Pos2::new(right.max(left + 2.0), reduction_y + bar_half_h),
                 ),
                 3.0,
                 color,
@@ -1536,11 +1540,14 @@ fn horizontal_bar_chart(
                     let efficiency_x = map_x(plot, efficiency_axis, efficiency);
                     painter.rect_filled(
                         Rect::from_min_max(
-                            Pos2::new(zero_x, y - row_h * 0.12),
-                            Pos2::new(efficiency_x.max(zero_x + 2.0), y + row_h * 0.12),
+                            Pos2::new(efficiency_zero_x, efficiency_y - bar_half_h),
+                            Pos2::new(
+                                efficiency_x.max(efficiency_zero_x + 2.0),
+                                efficiency_y + bar_half_h,
+                            ),
                         ),
-                        2.0,
-                        Color32::from_rgba_premultiplied(76, 105, 174, 180),
+                        3.0,
+                        efficiency_bar_color(),
                     );
                 }
             }
@@ -1556,12 +1563,47 @@ fn horizontal_bar_chart(
                 item.efficiency.map(format_table_number),
             );
         }
+        draw_dual_bar_legend(&painter, plot);
     });
+}
+
+fn draw_dual_bar_legend(painter: &egui::Painter, plot: Rect) {
+    let x = plot.right() + 18.0;
+    let y = plot.top() + 8.0;
+    draw_legend_item(painter, Pos2::new(x, y), ACCENT, "감축량");
+    draw_legend_item(
+        painter,
+        Pos2::new(x, y + 20.0),
+        efficiency_bar_color(),
+        "효율",
+    );
+}
+
+fn draw_legend_item(painter: &egui::Painter, pos: Pos2, color: Color32, label: &str) {
+    let swatch = Rect::from_min_size(pos, Vec2::new(12.0, 8.0));
+    painter.rect_filled(swatch, 2.0, color);
+    painter.rect_stroke(
+        swatch,
+        2.0,
+        Stroke::new(1.0, Color32::from_rgb(215, 224, 226)),
+        egui::StrokeKind::Inside,
+    );
+    painter.text(
+        Pos2::new(pos.x + 18.0, pos.y + 4.0),
+        Align2::LEFT_CENTER,
+        label,
+        egui::FontId::proportional(11.0),
+        TEXT_COLOR,
+    );
+}
+
+fn efficiency_bar_color() -> Color32 {
+    Color32::from_rgb(76, 105, 174)
 }
 
 fn chart_table_width(chart_width: f32, includes_cost: bool, includes_efficiency: bool) -> f32 {
     let preferred = if includes_cost && includes_efficiency {
-        (chart_width * 0.50).clamp(390.0, 500.0)
+        (chart_width * 0.46).clamp(350.0, 430.0)
     } else if includes_cost {
         (chart_width * 0.44).clamp(330.0, 420.0)
     } else {
@@ -1588,9 +1630,9 @@ fn chart_table_columns(
     if includes_cost && includes_efficiency {
         ChartTableColumns {
             label: rect.left() + 14.0,
-            value: plot.left() - 212.0,
-            rate: plot.left() - 154.0,
-            cost: Some(plot.left() - 82.0),
+            value: plot.left() - 174.0,
+            rate: plot.left() - 118.0,
+            cost: Some(plot.left() - 64.0),
             efficiency: Some(plot.left() - 12.0),
         }
     } else if includes_cost {
