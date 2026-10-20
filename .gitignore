@@ -3,6 +3,7 @@
 target/
 src-tauri/
 node_modules/
+__pycache__/
 dist/
 
 .env

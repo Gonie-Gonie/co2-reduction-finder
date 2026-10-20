@@ -1,0 +1,1164 @@
+{
+  "summary": {
+    "measured_at_utc": "2026-10-20T01:17:07.835840+00:00",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "logical_cpus": 24,
+    "cpu": "AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD",
+    "threads_requested": 0,
+    "repeats": 9,
+    "warmup": 2,
+    "input_description": "Synthetic fixed building scenario; LHS-style uncertainty; float32; weighted sample segmentation",
+    "includes": "Inference + output materialization only. Excludes model load, graph tracing, input generation, GUI and postprocessing.",
+    "python": {
+      "python_version": "3.12.7",
+      "tensorflow_version": "2.20.0",
+      "keras_version": "3.13.2",
+      "numpy_version": "2.3.1",
+      "import_ms": 10192.8151,
+      "load_all_models_ms": 2941.3487,
+      "model_count": 40,
+      "gpu_devices": [],
+      "tf_intra_op_threads_setting": 0,
+      "tf_inter_op_threads_setting": 0
+    },
+    "rust": {
+      "load_ms": 32.5175,
+      "rayon_threads": 24,
+      "model_count": 40,
+      "total_params": 5815048,
+      "repeats": 9,
+      "warmup": 2
+    },
+    "all_outputs_close": true,
+    "comparison": [
+      {
+        "name": "Univ_50",
+        "samples": 50,
+        "rust_ms": 0.1155,
+        "modes": {
+          "predict": {
+            "python_ms": 176.685,
+            "python_div_rust": 1529.7402597402597,
+            "max_abs_error": 1.6594238282152673e-05,
+            "max_rel_error": 5.906821849831444e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 5.0993,
+            "python_div_rust": 44.14978354978355,
+            "max_abs_error": 2.0408935547777673e-05,
+            "max_rel_error": 5.732867178174774e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 1.6629,
+            "python_div_rust": 14.397402597402596,
+            "max_abs_error": 1.6594238282152673e-05,
+            "max_rel_error": 5.906821849831444e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "Univ_200",
+        "samples": 200,
+        "rust_ms": 0.49200000000000005,
+        "modes": {
+          "predict": {
+            "python_ms": 178.1449,
+            "python_div_rust": 362.0831300813008,
+            "max_abs_error": 2.2513916015043378e-05,
+            "max_rel_error": 6.020773971975871e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 5.2821,
+            "python_div_rust": 10.735975609756096,
+            "max_abs_error": 2.2717285155238187e-05,
+            "max_rel_error": 6.325299707701956e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 1.2466,
+            "python_div_rust": 2.5337398373983735,
+            "max_abs_error": 2.2513916015043378e-05,
+            "max_rel_error": 6.325299707701956e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "Univ_1000",
+        "samples": 1000,
+        "rust_ms": 1.331,
+        "modes": {
+          "predict": {
+            "python_ms": 208.192,
+            "python_div_rust": 156.41773102930128,
+            "max_abs_error": 2.7067871094743623e-05,
+            "max_rel_error": 7.862864056818327e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 6.757,
+            "python_div_rust": 5.076634109691961,
+            "max_abs_error": 2.7067871094743623e-05,
+            "max_rel_error": 6.777316158481262e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 2.0476,
+            "python_div_rust": 1.5383921863260708,
+            "max_abs_error": 2.7067871094743623e-05,
+            "max_rel_error": 7.862864056818327e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "Office_50",
+        "samples": 50,
+        "rust_ms": 0.34400000000000003,
+        "modes": {
+          "predict": {
+            "python_ms": 174.3957,
+            "python_div_rust": 506.96424418604647,
+            "max_abs_error": 2.335058593416761e-05,
+            "max_rel_error": 6.100463605985783e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 6.2019,
+            "python_div_rust": 18.02877906976744,
+            "max_abs_error": 2.716528319979261e-05,
+            "max_rel_error": 7.221423163593936e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 1.7001,
+            "python_div_rust": 4.942151162790697,
+            "max_abs_error": 2.335058593416761e-05,
+            "max_rel_error": 6.100463605985783e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "Office_200",
+        "samples": 200,
+        "rust_ms": 0.7496999999999999,
+        "modes": {
+          "predict": {
+            "python_ms": 175.5317,
+            "python_div_rust": 234.1359210350807,
+            "max_abs_error": 3.0974853515886025e-05,
+            "max_rel_error": 7.265772137664343e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 9.1824,
+            "python_div_rust": 12.248099239695879,
+            "max_abs_error": 3.438232421615339e-05,
+            "max_rel_error": 7.429830540886865e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 2.0619,
+            "python_div_rust": 2.7503001200480197,
+            "max_abs_error": 3.0974853515886025e-05,
+            "max_rel_error": 7.265772137664343e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "Office_1000",
+        "samples": 1000,
+        "rust_ms": 2.0372,
+        "modes": {
+          "predict": {
+            "python_ms": 212.0192,
+            "python_div_rust": 104.07382682112704,
+            "max_abs_error": 4.2110595700251e-05,
+            "max_rel_error": 1.064232179323286e-06,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 10.4137,
+            "python_div_rust": 5.111771058315335,
+            "max_abs_error": 4.2110595700251e-05,
+            "max_rel_error": 1.064232179323286e-06,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 3.5949,
+            "python_div_rust": 1.764627920675437,
+            "max_abs_error": 4.2110595700251e-05,
+            "max_rel_error": 1.064232179323286e-06,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "SmallMultiHousing_50",
+        "samples": 50,
+        "rust_ms": 1.4505,
+        "modes": {
+          "predict": {
+            "python_ms": 187.8388,
+            "python_div_rust": 129.49934505342986,
+            "max_abs_error": 4.596923828614763e-05,
+            "max_rel_error": 7.435600888791852e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 12.798,
+            "python_div_rust": 8.82316442605998,
+            "max_abs_error": 4.596923828614763e-05,
+            "max_rel_error": 7.435600888791852e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 4.5342,
+            "python_div_rust": 3.125956566701138,
+            "max_abs_error": 4.596923828614763e-05,
+            "max_rel_error": 7.435600888791852e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "SmallMultiHousing_200",
+        "samples": 200,
+        "rust_ms": 3.5571,
+        "modes": {
+          "predict": {
+            "python_ms": 181.0371,
+            "python_div_rust": 50.8945770430969,
+            "max_abs_error": 7.114746094316615e-05,
+            "max_rel_error": 1.0139277368539926e-06,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 16.357,
+            "python_div_rust": 4.598408816170475,
+            "max_abs_error": 7.114746094316615e-05,
+            "max_rel_error": 1.0139277368539926e-06,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 5.5297,
+            "python_div_rust": 1.5545528660987884,
+            "max_abs_error": 7.114746094316615e-05,
+            "max_rel_error": 1.0139277368539926e-06,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      },
+      {
+        "name": "SmallMultiHousing_1000",
+        "samples": 1000,
+        "rust_ms": 16.32,
+        "modes": {
+          "predict": {
+            "python_ms": 261.3299,
+            "python_div_rust": 16.012861519607842,
+            "max_abs_error": 9.17333984347124e-05,
+            "max_rel_error": 9.83274807812517e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "eager": {
+            "python_ms": 31.2224,
+            "python_div_rust": 1.9131372549019607,
+            "max_abs_error": 9.17333984347124e-05,
+            "max_rel_error": 9.83274807812517e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          },
+          "graph": {
+            "python_ms": 11.6096,
+            "python_div_rust": 0.7113725490196079,
+            "max_abs_error": 9.17333984347124e-05,
+            "max_rel_error": 9.83274807812517e-07,
+            "allclose_atol_0_001_rtol_0_0001": true
+          }
+        }
+      }
+    ]
+  },
+  "raw_timing_samples": {
+    "python": [
+      {
+        "name": "Univ_50",
+        "samples": 50,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              164.9348,
+              137.0072,
+              166.2874,
+              180.2497,
+              176.685,
+              182.3823,
+              233.3124,
+              182.0258,
+              148.5761
+            ],
+            "median_ms": 176.685,
+            "min_ms": 137.0072,
+            "max_ms": 233.3124
+          },
+          "eager": {
+            "times_ms": [
+              5.8417,
+              5.2668,
+              5.1475,
+              5.1681,
+              5.0993,
+              5.0882,
+              5.0292,
+              5.0265,
+              4.9477
+            ],
+            "median_ms": 5.0993,
+            "min_ms": 4.9477,
+            "max_ms": 5.8417
+          },
+          "graph": {
+            "times_ms": [
+              1.816,
+              1.5536,
+              1.4974,
+              1.6629,
+              1.6792,
+              1.4793,
+              1.3464,
+              1.8993,
+              1.9965
+            ],
+            "median_ms": 1.6629,
+            "min_ms": 1.3464,
+            "max_ms": 1.9965
+          }
+        }
+      },
+      {
+        "name": "Univ_200",
+        "samples": 200,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              196.6692,
+              228.4606,
+              192.0484,
+              155.822,
+              170.9994,
+              197.1074,
+              178.1449,
+              177.8061,
+              164.5795
+            ],
+            "median_ms": 178.1449,
+            "min_ms": 155.822,
+            "max_ms": 228.4606
+          },
+          "eager": {
+            "times_ms": [
+              4.22,
+              4.7855,
+              5.2974,
+              5.2821,
+              5.2161,
+              6.0229,
+              5.4499,
+              5.3326,
+              5.1948
+            ],
+            "median_ms": 5.2821,
+            "min_ms": 4.22,
+            "max_ms": 6.0229
+          },
+          "graph": {
+            "times_ms": [
+              1.2466,
+              1.2354,
+              0.9895,
+              1.0656,
+              1.0093,
+              1.4507,
+              1.3965,
+              1.6657,
+              1.6706
+            ],
+            "median_ms": 1.2466,
+            "min_ms": 0.9895,
+            "max_ms": 1.6706
+          }
+        }
+      },
+      {
+        "name": "Univ_1000",
+        "samples": 1000,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              208.1033,
+              208.192,
+              180.7306,
+              222.6411,
+              208.7674,
+              211.4792,
+              210.7438,
+              169.5711,
+              195.7966
+            ],
+            "median_ms": 208.192,
+            "min_ms": 169.5711,
+            "max_ms": 222.6411
+          },
+          "eager": {
+            "times_ms": [
+              7.942,
+              7.8597,
+              6.8322,
+              6.3923,
+              5.6236,
+              6.304,
+              6.153,
+              7.7647,
+              6.757
+            ],
+            "median_ms": 6.757,
+            "min_ms": 5.6236,
+            "max_ms": 7.942
+          },
+          "graph": {
+            "times_ms": [
+              2.4176,
+              2.5889,
+              1.7858,
+              2.2375,
+              1.9829,
+              1.7819,
+              1.9109,
+              2.0476,
+              2.1864
+            ],
+            "median_ms": 2.0476,
+            "min_ms": 1.7819,
+            "max_ms": 2.5889
+          }
+        }
+      },
+      {
+        "name": "Office_50",
+        "samples": 50,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              174.736,
+              167.896,
+              167.704,
+              148.3719,
+              163.4629,
+              174.3957,
+              217.084,
+              182.2971,
+              179.2649
+            ],
+            "median_ms": 174.3957,
+            "min_ms": 148.3719,
+            "max_ms": 217.084
+          },
+          "eager": {
+            "times_ms": [
+              7.5176,
+              6.933,
+              6.277,
+              6.262,
+              6.2019,
+              6.1355,
+              6.1717,
+              6.0438,
+              6.0333
+            ],
+            "median_ms": 6.2019,
+            "min_ms": 6.0333,
+            "max_ms": 7.5176
+          },
+          "graph": {
+            "times_ms": [
+              2.2935,
+              1.89,
+              1.8757,
+              1.6595,
+              1.7336,
+              1.5755,
+              1.41,
+              1.6618,
+              1.7001
+            ],
+            "median_ms": 1.7001,
+            "min_ms": 1.41,
+            "max_ms": 2.2935
+          }
+        }
+      },
+      {
+        "name": "Office_200",
+        "samples": 200,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              195.1337,
+              172.815,
+              157.0068,
+              175.5317,
+              166.364,
+              180.6872,
+              182.0098,
+              170.5267,
+              176.4497
+            ],
+            "median_ms": 175.5317,
+            "min_ms": 157.0068,
+            "max_ms": 195.1337
+          },
+          "eager": {
+            "times_ms": [
+              9.113,
+              8.7133,
+              9.4505,
+              9.5844,
+              9.4906,
+              7.4683,
+              8.1517,
+              9.7875,
+              9.1824
+            ],
+            "median_ms": 9.1824,
+            "min_ms": 7.4683,
+            "max_ms": 9.7875
+          },
+          "graph": {
+            "times_ms": [
+              2.0159,
+              2.1723,
+              2.0451,
+              1.9519,
+              2.2435,
+              2.2936,
+              1.7716,
+              2.1108,
+              2.0619
+            ],
+            "median_ms": 2.0619,
+            "min_ms": 1.7716,
+            "max_ms": 2.2936
+          }
+        }
+      },
+      {
+        "name": "Office_1000",
+        "samples": 1000,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              178.131,
+              230.9457,
+              232.5059,
+              225.8859,
+              178.2115,
+              208.4427,
+              221.0556,
+              212.0192,
+              207.5694
+            ],
+            "median_ms": 212.0192,
+            "min_ms": 178.131,
+            "max_ms": 232.5059
+          },
+          "eager": {
+            "times_ms": [
+              10.8764,
+              10.2789,
+              10.7384,
+              10.6703,
+              10.2764,
+              10.3075,
+              10.4137,
+              10.1122,
+              11.2497
+            ],
+            "median_ms": 10.4137,
+            "min_ms": 10.1122,
+            "max_ms": 11.2497
+          },
+          "graph": {
+            "times_ms": [
+              3.0065,
+              3.502,
+              4.0857,
+              3.8027,
+              3.7552,
+              3.205,
+              3.5949,
+              4.1072,
+              3.3495
+            ],
+            "median_ms": 3.5949,
+            "min_ms": 3.0065,
+            "max_ms": 4.1072
+          }
+        }
+      },
+      {
+        "name": "SmallMultiHousing_50",
+        "samples": 50,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              165.5077,
+              181.5809,
+              206.9124,
+              175.6312,
+              166.3456,
+              190.5382,
+              190.766,
+              188.893,
+              187.8388
+            ],
+            "median_ms": 187.8388,
+            "min_ms": 165.5077,
+            "max_ms": 206.9124
+          },
+          "eager": {
+            "times_ms": [
+              13.3996,
+              13.5734,
+              12.4716,
+              12.798,
+              11.6871,
+              11.6867,
+              12.2754,
+              13.9089,
+              16.6103
+            ],
+            "median_ms": 12.798,
+            "min_ms": 11.6867,
+            "max_ms": 16.6103
+          },
+          "graph": {
+            "times_ms": [
+              4.5342,
+              5.0984,
+              3.7518,
+              3.7259,
+              4.8432,
+              4.2185,
+              4.2865,
+              4.7241,
+              4.6238
+            ],
+            "median_ms": 4.5342,
+            "min_ms": 3.7259,
+            "max_ms": 5.0984
+          }
+        }
+      },
+      {
+        "name": "SmallMultiHousing_200",
+        "samples": 200,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              192.1679,
+              163.5842,
+              184.2686,
+              193.9038,
+              189.8266,
+              179.8986,
+              171.9061,
+              181.0371,
+              152.6949
+            ],
+            "median_ms": 181.0371,
+            "min_ms": 152.6949,
+            "max_ms": 193.9038
+          },
+          "eager": {
+            "times_ms": [
+              15.6649,
+              16.5166,
+              16.6329,
+              17.6342,
+              16.357,
+              15.9266,
+              16.7666,
+              14.4948,
+              15.6977
+            ],
+            "median_ms": 16.357,
+            "min_ms": 14.4948,
+            "max_ms": 17.6342
+          },
+          "graph": {
+            "times_ms": [
+              5.157,
+              5.0548,
+              5.7856,
+              5.4383,
+              5.6225,
+              5.995,
+              6.2497,
+              5.4599,
+              5.5297
+            ],
+            "median_ms": 5.5297,
+            "min_ms": 5.0548,
+            "max_ms": 6.2497
+          }
+        }
+      },
+      {
+        "name": "SmallMultiHousing_1000",
+        "samples": 1000,
+        "modes": {
+          "predict": {
+            "times_ms": [
+              261.3299,
+              272.1178,
+              281.4105,
+              251.0457,
+              234.6988,
+              265.9947,
+              261.5811,
+              240.9766,
+              237.409
+            ],
+            "median_ms": 261.3299,
+            "min_ms": 234.6988,
+            "max_ms": 281.4105
+          },
+          "eager": {
+            "times_ms": [
+              27.3297,
+              28.9404,
+              30.97,
+              31.4187,
+              31.2224,
+              31.3793,
+              30.5087,
+              33.4758,
+              33.8088
+            ],
+            "median_ms": 31.2224,
+            "min_ms": 27.3297,
+            "max_ms": 33.8088
+          },
+          "graph": {
+            "times_ms": [
+              11.1505,
+              10.2631,
+              11.2498,
+              12.8489,
+              11.4441,
+              12.17,
+              12.0803,
+              11.6096,
+              12.3002
+            ],
+            "median_ms": 11.6096,
+            "min_ms": 10.2631,
+            "max_ms": 12.8489
+          }
+        }
+      }
+    ],
+    "rust": [
+      {
+        "name": "Univ_50",
+        "building_type": "Univ",
+        "samples": 50,
+        "times_ms": [
+          0.164,
+          0.1155,
+          0.1067,
+          0.25339999999999996,
+          0.1671,
+          0.096,
+          0.0869,
+          0.21430000000000002,
+          0.0988
+        ],
+        "median_ms": 0.1155,
+        "min_ms": 0.0869,
+        "max_ms": 0.25339999999999996
+      },
+      {
+        "name": "Univ_200",
+        "building_type": "Univ",
+        "samples": 200,
+        "times_ms": [
+          0.49200000000000005,
+          0.6176,
+          0.4551,
+          0.7747999999999999,
+          0.3525,
+          0.3415,
+          0.5273,
+          0.5082,
+          0.38020000000000004
+        ],
+        "median_ms": 0.49200000000000005,
+        "min_ms": 0.3415,
+        "max_ms": 0.7747999999999999
+      },
+      {
+        "name": "Univ_1000",
+        "building_type": "Univ",
+        "samples": 1000,
+        "times_ms": [
+          1.3255000000000001,
+          1.5112,
+          1.6543,
+          1.2865000000000002,
+          1.331,
+          1.571,
+          1.3517,
+          1.014,
+          1.1493
+        ],
+        "median_ms": 1.331,
+        "min_ms": 1.014,
+        "max_ms": 1.6543
+      },
+      {
+        "name": "Office_50",
+        "building_type": "Office",
+        "samples": 50,
+        "times_ms": [
+          0.3964,
+          0.1926,
+          0.2026,
+          0.1939,
+          0.2696,
+          0.34400000000000003,
+          0.49240000000000006,
+          0.455,
+          0.4793
+        ],
+        "median_ms": 0.34400000000000003,
+        "min_ms": 0.1926,
+        "max_ms": 0.49240000000000006
+      },
+      {
+        "name": "Office_200",
+        "building_type": "Office",
+        "samples": 200,
+        "times_ms": [
+          0.7496999999999999,
+          0.8666,
+          0.7527,
+          0.6399,
+          0.7988999999999999,
+          0.8179,
+          0.5791999999999999,
+          0.5143,
+          0.6911
+        ],
+        "median_ms": 0.7496999999999999,
+        "min_ms": 0.5143,
+        "max_ms": 0.8666
+      },
+      {
+        "name": "Office_1000",
+        "building_type": "Office",
+        "samples": 1000,
+        "times_ms": [
+          2.1156,
+          2.0372,
+          1.7863,
+          1.4756,
+          1.6858000000000002,
+          1.8892,
+          2.1673,
+          2.4084000000000003,
+          2.1461
+        ],
+        "median_ms": 2.0372,
+        "min_ms": 1.4756,
+        "max_ms": 2.4084000000000003
+      },
+      {
+        "name": "SmallMultiHousing_50",
+        "building_type": "SmallMultiHousing",
+        "samples": 50,
+        "times_ms": [
+          1.2823000000000002,
+          1.5157,
+          1.4567,
+          1.1334,
+          1.4655,
+          1.8175000000000001,
+          1.4063,
+          1.4505,
+          1.4469
+        ],
+        "median_ms": 1.4505,
+        "min_ms": 1.1334,
+        "max_ms": 1.8175000000000001
+      },
+      {
+        "name": "SmallMultiHousing_200",
+        "building_type": "SmallMultiHousing",
+        "samples": 200,
+        "times_ms": [
+          3.9328000000000003,
+          4.0103,
+          3.3319,
+          3.563,
+          3.5441000000000003,
+          3.0669999999999997,
+          3.7628000000000004,
+          3.1556,
+          3.5571
+        ],
+        "median_ms": 3.5571,
+        "min_ms": 3.0669999999999997,
+        "max_ms": 4.0103
+      },
+      {
+        "name": "SmallMultiHousing_1000",
+        "building_type": "SmallMultiHousing",
+        "samples": 1000,
+        "times_ms": [
+          14.033800000000001,
+          14.0382,
+          13.3767,
+          16.32,
+          16.8145,
+          19.4267,
+          19.367700000000003,
+          17.6188,
+          13.9235
+        ],
+        "median_ms": 16.32,
+        "min_ms": 13.3767,
+        "max_ms": 19.4267
+      }
+    ]
+  },
+  "size": {
+    "methodology": [
+      "Installed uncompressed file sizes, not installer, archive, or RAM sizes.",
+      "TensorFlow/Keras/h5py/NumPy installed Requires-Dist transitive closure; current environment markers; extra=''.",
+      "Each real RECORD file counted once by resolved absolute path, including dist-info, native libraries, and external entry-point scripts.",
+      "Generated .pyc/.pyo and __pycache__ files excluded; absent RECORD paths are reported, not counted.",
+      "Base Python includes the full standard library except site-packages and generated bytecode; unrelated installed distributions are excluded.",
+      "No pip, development headers, Python import libraries, documentation, or installers are added unless present inside a selected distribution or the included stdlib.",
+      "Shared system DLLs outside the Python installation and operating system are excluded on both sides.",
+      "Rust executable sizes include embedded assets; do not add assets/models.c2m again to either executable."
+    ],
+    "python_runtime": {
+      "file_count": 18153,
+      "bytes": 1586024766
+    },
+    "source_h5": {
+      "count": 40,
+      "bytes": 71201072
+    },
+    "python_inference_support_files": [
+      {
+        "path": "models\\ann\\v1\\model_registry.json",
+        "exists": true,
+        "bytes": 18491
+      },
+      {
+        "path": "scripts\\benchmark_models.py",
+        "exists": true,
+        "bytes": 11336
+      }
+    ],
+    "python_runtime_plus_all_h5_and_support_files": {
+      "file_count": 18195,
+      "bytes": 1657255665
+    },
+    "rust_artifacts": {
+      "target": "x86_64-pc-windows-gnu",
+      "converted_model_binary": {
+        "path": "assets\\models.c2m",
+        "exists": true,
+        "bytes": 23262546
+      },
+      "application_exe": {
+        "path": "target\\x86_64-pc-windows-gnu\\release\\co2-reduction-finder.exe",
+        "exists": true,
+        "bytes": 31822848
+      },
+      "benchmark_exe": {
+        "path": "target\\x86_64-pc-windows-gnu\\release\\examples\\model_benchmark.exe",
+        "exists": true,
+        "bytes": 23796224
+      }
+    },
+    "base_python_runtime_bytes": 66439918,
+    "python_dependencies": {
+      "bytes": 1519584848,
+      "distribution_count": 38,
+      "distributions": {
+        "absl-py": {
+          "version": "2.1.0",
+          "bytes": 470088
+        },
+        "astunparse": {
+          "version": "1.6.3",
+          "bytes": 40237
+        },
+        "certifi": {
+          "version": "2024.8.30",
+          "bytes": 308518
+        },
+        "charset-normalizer": {
+          "version": "3.4.0",
+          "bytes": 422575
+        },
+        "flatbuffers": {
+          "version": "24.3.25",
+          "bytes": 91965
+        },
+        "gast": {
+          "version": "0.6.0",
+          "bytes": 98186
+        },
+        "google-pasta": {
+          "version": "0.2.0",
+          "bytes": 193488
+        },
+        "grpcio": {
+          "version": "1.67.1",
+          "bytes": 10465409
+        },
+        "h5py": {
+          "version": "3.12.1",
+          "bytes": 7713119
+        },
+        "idna": {
+          "version": "3.10",
+          "bytes": 350527
+        },
+        "keras": {
+          "version": "3.13.2",
+          "bytes": 6123792
+        },
+        "libclang": {
+          "version": "18.1.1",
+          "bytes": 84149753
+        },
+        "markdown": {
+          "version": "3.7",
+          "bytes": 434174
+        },
+        "markdown-it-py": {
+          "version": "3.0.0",
+          "bytes": 342334
+        },
+        "markupsafe": {
+          "version": "3.0.2",
+          "bytes": 38315
+        },
+        "mdurl": {
+          "version": "0.1.2",
+          "bytes": 23676
+        },
+        "ml-dtypes": {
+          "version": "0.5.4",
+          "bytes": 885445
+        },
+        "namex": {
+          "version": "0.0.8",
+          "bytes": 13178
+        },
+        "numpy": {
+          "version": "2.3.1",
+          "bytes": 43357572
+        },
+        "opt-einsum": {
+          "version": "3.4.0",
+          "bytes": 249456
+        },
+        "optree": {
+          "version": "0.13.1",
+          "bytes": 892262
+        },
+        "packaging": {
+          "version": "24.2",
+          "bytes": 236013
+        },
+        "pillow": {
+          "version": "11.0.0",
+          "bytes": 6135799
+        },
+        "protobuf": {
+          "version": "5.28.3",
+          "bytes": 1616614
+        },
+        "pygments": {
+          "version": "2.18.0",
+          "bytes": 4557990
+        },
+        "requests": {
+          "version": "2.32.3",
+          "bytes": 206080
+        },
+        "rich": {
+          "version": "13.9.4",
+          "bytes": 959404
+        },
+        "setuptools": {
+          "version": "75.4.0",
+          "bytes": 4255307
+        },
+        "six": {
+          "version": "1.16.0",
+          "bytes": 38089
+        },
+        "tensorboard": {
+          "version": "2.20.0",
+          "bytes": 8762867
+        },
+        "tensorboard-data-server": {
+          "version": "0.7.2",
+          "bytes": 3144
+        },
+        "tensorflow": {
+          "version": "2.20.0",
+          "bytes": 1334458460
+        },
+        "termcolor": {
+          "version": "2.5.0",
+          "bytes": 18039
+        },
+        "typing-extensions": {
+          "version": "4.12.2",
+          "bytes": 152061
+        },
+        "urllib3": {
+          "version": "2.2.3",
+          "bytes": 410622
+        },
+        "werkzeug": {
+          "version": "3.1.3",
+          "bytes": 763897
+        },
+        "wheel": {
+          "version": "0.45.0",
+          "bytes": 334284
+        },
+        "wrapt": {
+          "version": "1.16.0",
+          "bytes": 120538
+        }
+      }
+    }
+  }
+}

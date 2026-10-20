@@ -57,6 +57,11 @@ Official ANN source models and weights live under `models/ann/v1/`.
 Run `python scripts\extract_models.py` after model registry changes to regenerate the compact embedded assets.
 The framework contract is documented in [docs/model-framework.md](docs/model-framework.md).
 
+## Inference Benchmark
+
+The reproducible Python/Keras versus Rust timing and installed-runtime size comparison is documented in [docs/model-benchmark.md](docs/model-benchmark.md).
+The benchmark uses the original H5 models and the application's existing Rust inference code; it does not change application behavior.
+
 ## Notes
 
 Project direction and reference-code analysis are tracked in [docs/memo.md](docs/memo.md) and [docs/reference-analysis.md](docs/reference-analysis.md).
