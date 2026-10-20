@@ -2,6 +2,8 @@
 
 Measured on 2026-10-20. This is a practical local comparison, not a controlled research benchmark or a claim about Python and Rust in general.
 
+See the [artifact index](benchmarks/README.md) for reports, source code, raw results, and executable locations.
+
 The installed Python/TensorFlow/Keras runtime plus the original 40 models occupies **1,580.48 MiB (1.54 GiB)**. The complete Rust GUI EXE, including all models and application assets, is **30.35 MiB**, approximately **52.1 times smaller (98.08% less)** under the counting rules below.
 
 Rust was faster than Keras `predict()` in all measured cases. Against warmed TensorFlow graph execution, Rust was faster for the small and medium models; TensorFlow was faster for the largest 1,000-sample case. The large `predict()` gap therefore should not be presented as the arithmetic-engine speedup alone.
@@ -78,6 +80,8 @@ Python execution modes:
 | `eager` | `model(tensor, training=False).numpy()`, once for each model segment. |
 | `graph` | The same forward pass in a warmed `tf.function`, with a dynamic batch dimension, followed by `.numpy()`. No XLA. |
 | Rust | The application's unchanged `EmbeddedModelStore::predict_weighted_segments` / `MlpModel::predict_batch_parallel`. |
+
+In the measured Keras 3.13.2 TensorFlow backend, `predict()` itself already uses `tf.function` internally by default. The `graph` column instead invokes a cached `tf.function` directly on prepared tensors for each complete model segment. Its difference from `predict` combines bypassing the data adapter, fewer sub-batches, and input preparation outside the timer; it is not an isolated eager-versus-graph experiment. This technique is commonly called graph execution or `tf.function`-based inference, and the direct call and batch changes are inference optimization. See the [Keras implementation](https://github.com/keras-team/keras/blob/v3.13.2/keras/src/backend/tensorflow/trainer.py), [Keras inference API](https://keras.io/api/models/model_training_apis/#predict-method), and [TensorFlow graph execution guide](https://www.tensorflow.org/guide/function).
 
 The original Python calling scripts are absent from this checkout. The `predict` measurement represents a common Keras API, not a verified reproduction of the original application's exact calling code. The graph measurement makes a comparison against a lower-overhead TensorFlow path possible.
 

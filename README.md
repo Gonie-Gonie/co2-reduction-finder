@@ -59,7 +59,7 @@ The framework contract is documented in [docs/model-framework.md](docs/model-fra
 
 ## Inference Benchmark
 
-The reproducible Python/Keras versus Rust timing and installed-runtime size comparison is documented in [docs/model-benchmark.md](docs/model-benchmark.md).
+Start with the [benchmark artifact index](docs/benchmarks/README.md) for reports, reproducible scripts, raw results, and executable locations. The detailed Python/Keras versus Rust timing and installed-runtime size comparison is in [docs/model-benchmark.md](docs/model-benchmark.md).
 The benchmark uses the original H5 models and the application's existing Rust inference code; it does not change application behavior.
 
 ## Notes
